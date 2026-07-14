@@ -1,0 +1,11 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consultar encomenda | Distrito</title><link rel="stylesheet" href="assets/css/styles.css"></head><body>
+
+<header class="topbar"><div class="container topbar-inner">
+  <a class="brand" href="/">
+    <div class="brand-logo-mini"><img src="assets/images/logo-distrito.png" alt="Logo Distrito"></div>
+    <div class="brand-text"><strong>DISTRITO</strong><span>118</span></div>
+  </a>
+  <nav class="nav"><a href="/" class="">Início</a><a href="/produtos" class="">Produtos</a><a href="/encomenda" class="">Encomenda</a><a href="/consulta" class="active">Consultar</a><a href="/login" class=" primary">Acesso Distrito</a></nav>
+</div></header>
+<main class="container page-shell"><div class="page-title"><span class="eyebrow">Acompanhamento</span><h1>Consultar encomenda</h1><p>Informe o código recebido ao finalizar a solicitação.</p></div>
+<form id="lookupForm" class="panel" style="max-width:640px;margin-bottom:20px"><div class="field"><label>Código da encomenda</label><input id="lookupCode" placeholder="DT-505-ISA-7GQ2" required></div><button class="btn primary" style="margin-top:14px">Consultar</button></form><div id="lookupResult"></div></main><footer class="footer"><div class="container">Distrito 118 — sistema de encomendas RP.</div></footer><div class="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase-config.js"></script><script src="assets/js/app.js"></script><script src="assets/js/pricing.js"></script><script src="assets/js/public-store.js"></script><script>setupSupabaseOrderLookup()</script></body></html>

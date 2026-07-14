@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR" class="auth-checking">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Produtos | Distrito</title>
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <a class="sidebar-logo" href="/admin" aria-label="Distrito - Dashboard">
+        <img src="../assets/images/logo-distrito.png" alt="Logo Distrito">
+        <span>Operational 118</span>
+      </a>
+      <nav class="sidebar-nav"><a href="/admin" class=""><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a><a href="/admin/encomendas" class=""><i data-lucide="shopping-bag"></i><span>Encomendas</span></a><a href="/admin/produtos" class="active"><i data-lucide="box"></i><span>Produtos</span></a><a href="/admin/materiais" class=""><i data-lucide="hammer"></i><span>Materiais</span></a><a href="/admin/categorias" class=""><i data-lucide="tags"></i><span>Categorias</span></a><a href="/admin/estoque" class=""><i data-lucide="layers-3"></i><span>Estoque</span></a><a href="/admin/caixa" class=""><i data-lucide="banknote"></i><span>Caixa</span></a><a href="/"><i data-lucide="globe-2"></i><span>Voltar ao site</span></a></nav>
+    <div class="beta-version">v7.1.6-beta</div></aside>
+
+    <main class="admin-main">
+      <div class="admin-top">
+        <div><span class="eyebrow">Catálogo</span><h1>Produtos</h1></div>
+        <button id="newProductButton" class="btn primary" type="button">+ Novo produto</button>
+      </div>
+
+      <section class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Categoria</th>
+                <th>CPF</th>
+                <th>CNPJ</th>
+                <th>Aliança</th>
+                <th>Parceria</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="productsTable"><tr><td colspan="8" class="loading-row">Carregando produtos...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="productModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <div class="modal-head">
+        <div><span class="eyebrow">Cadastro</span><h2 id="productModalTitle">Novo produto</h2></div>
+        <button id="closeProductModal" class="modal-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <form id="productForm" class="modal-body">
+        <div id="productFormError" class="form-error"></div>
+        <input type="hidden" id="productId">
+
+        <section class="form-section">
+          <h3>Informações do produto</h3>
+          <div class="form-grid">
+            <div class="field"><label>Nome *</label><input id="productName" required maxlength="100"></div>
+            <div class="field"><label>Categoria *</label><input id="productCategory" list="categoryOptions" required maxlength="80" placeholder="Ex.: Proteção"><datalist id="categoryOptions"></datalist></div>
+            <div class="field full"><label>Descrição</label><textarea id="productDescription" maxlength="500"></textarea></div>
+            <div class="field full"><label>URL da imagem</label><input id="productImageUrl" type="text" placeholder="https://..."></div>
+          </div>
+          <div class="checkbox-row">
+            <label class="checkbox-control"><input id="productIsActive" type="checkbox" checked> Produto ativo</label>
+            <label class="checkbox-control"><input id="productIsPublic" type="checkbox" checked> Mostrar no catálogo</label>
+            <label class="checkbox-control"><input id="productAllowsOrder" type="checkbox" checked> Permitir encomenda</label>
+          </div>
+        </section>
+
+        <section class="form-section pricing-section">
+          <h3>Preços para CPF</h3>
+          <div class="form-grid">
+            <div class="field"><label>Preço unitário *</label><input id="cpfUnitPrice" type="number" min="0" step="0.01" value="0" required></div>
+            <div class="field"><label>Mínimo para atacado</label><input id="cpfWholesaleMinimum" type="number" min="1" step="1" placeholder="Opcional"></div>
+            <div class="field"><label>Preço de atacado</label><input id="cpfWholesalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></div>
+          </div>
+        </section>
+        <section class="form-section pricing-section">
+          <h3>Preços para CNPJ</h3>
+          <div class="form-grid">
+            <div class="field"><label>Preço unitário *</label><input id="cnpjUnitPrice" type="number" min="0" step="0.01" value="0" required></div>
+            <div class="field"><label>Mínimo para atacado</label><input id="cnpjWholesaleMinimum" type="number" min="1" step="1" placeholder="Opcional"></div>
+            <div class="field"><label>Preço de atacado</label><input id="cnpjWholesalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></div>
+          </div>
+        </section>
+        <section class="form-section pricing-section">
+          <h3>Preços para Aliança</h3>
+          <div class="form-grid">
+            <div class="field"><label>Preço unitário *</label><input id="aliancaUnitPrice" type="number" min="0" step="0.01" value="0" required></div>
+            <div class="field"><label>Mínimo para atacado</label><input id="aliancaWholesaleMinimum" type="number" min="1" step="1" placeholder="Opcional"></div>
+            <div class="field"><label>Preço de atacado</label><input id="aliancaWholesalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></div>
+          </div>
+        </section>
+        <section class="form-section pricing-section">
+          <h3>Preços para Parceria</h3>
+          <div class="form-grid">
+            <div class="field"><label>Preço unitário *</label><input id="parceriaUnitPrice" type="number" min="0" step="0.01" value="0" required></div>
+            <div class="field"><label>Mínimo para atacado</label><input id="parceriaWholesaleMinimum" type="number" min="1" step="1" placeholder="Opcional"></div>
+            <div class="field"><label>Preço de atacado</label><input id="parceriaWholesalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title-row">
+            <div><h3>Receita de craft</h3><p class="muted-caption">Materiais necessários para produzir 1 unidade.</p></div>
+            <button id="addRecipeRow" class="btn ghost small" type="button">+ Adicionar material</button>
+          </div>
+          <div id="recipeRows" class="recipe-list"></div>
+        </section>
+        <div class="modal-actions">
+          <button id="cancelProductButton" class="btn ghost" type="button">Cancelar</button>
+          <button id="saveProductButton" class="btn primary" type="submit">Salvar produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast"></div>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../assets/js/supabase-config.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/pricing.js"></script>
+  <script src="../assets/js/admin-auth.js"></script>
+  <script src="../assets/js/products-admin.js"></script>
+<script>window.lucide?.createIcons(); document.addEventListener("district-auth-ready",()=>window.lucide?.createIcons());</script></body>
+</html>

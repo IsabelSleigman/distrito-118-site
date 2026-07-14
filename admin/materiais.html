@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR" class="auth-checking">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Materiais | Distrito</title><link rel="stylesheet" href="../assets/css/styles.css"></head>
+<body><div class="admin-shell">
+<aside class="sidebar"><a class="sidebar-logo" href="/admin"><img src="../assets/images/logo-distrito.png" alt="Logo Distrito"><span>Operational 118</span></a><nav class="sidebar-nav"><a href="/admin" class=""><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a><a href="/admin/encomendas" class=""><i data-lucide="shopping-bag"></i><span>Encomendas</span></a><a href="/admin/produtos" class=""><i data-lucide="box"></i><span>Produtos</span></a><a href="/admin/materiais" class="active"><i data-lucide="hammer"></i><span>Materiais</span></a><a href="/admin/categorias" class=""><i data-lucide="tags"></i><span>Categorias</span></a><a href="/admin/estoque" class=""><i data-lucide="layers-3"></i><span>Estoque</span></a><a href="/admin/caixa" class=""><i data-lucide="banknote"></i><span>Caixa</span></a><a href="/" class=""><i data-lucide="globe-2"></i><span>Voltar ao site</span></a></nav><div class="beta-version">v7.1.6-beta</div></aside>
+<main class="admin-main">
+<div class="admin-top"><div><span class="eyebrow">Produção</span><h1>Materiais</h1><p class="page-subtitle">Cadastre os insumos usados nas receitas de craft.</p></div><button id="newMaterialButton" class="btn primary">+ Novo material</button></div>
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Material</th><th>Unidade</th><th>Estoque</th><th>Reservado</th><th>Disponível</th><th>Mínimo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="materialsTable"><tr><td colspan="8" class="loading-row">Carregando materiais...</td></tr></tbody></table></div></section>
+</main></div>
+<div id="materialModal" class="modal-backdrop" aria-hidden="true"><div class="modal-card small-modal"><div class="modal-head"><div><span class="eyebrow">Cadastro</span><h2 id="materialModalTitle">Novo material</h2></div><button id="closeMaterialModal" class="modal-close">×</button></div>
+<form id="materialForm" class="modal-body"><div id="materialFormError" class="form-error"></div><input id="materialId" type="hidden"><div class="form-grid">
+<div class="field"><label>Nome *</label><input id="materialName" required maxlength="100"></div>
+<div class="field"><label>Unidade *</label><input id="materialUnit" value="unidade" required></div>
+<div class="field full"><label>Descrição</label><textarea id="materialDescription"></textarea></div>
+<div class="field"><label>Estoque atual</label><input id="materialStock" type="number" min="0" step="0.01" value="0"></div>
+<div class="field"><label>Estoque mínimo</label><input id="materialMinimum" type="number" min="0" step="0.01" value="0"></div>
+</div><div class="checkbox-row"><label class="checkbox-control"><input id="materialIsActive" type="checkbox" checked> Material ativo</label></div>
+<div class="modal-actions"><button id="cancelMaterialButton" class="btn ghost" type="button">Cancelar</button><button id="saveMaterialButton" class="btn primary" type="submit">Salvar material</button></div></form></div></div>
+
+  <div class="toast"></div>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../assets/js/supabase-config.js"></script>
+  <script src="../assets/js/app.js"></script>
+  <script src="../assets/js/admin-auth.js"></script>
+<script src="../assets/js/materials-admin.js"></script><script>window.lucide?.createIcons();document.addEventListener("district-auth-ready",()=>window.lucide?.createIcons());</script></body></html>

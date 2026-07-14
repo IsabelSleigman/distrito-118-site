@@ -1,0 +1,26 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nova encomenda | Distrito</title><link rel="stylesheet" href="assets/css/styles.css"></head><body>
+
+<header class="topbar"><div class="container topbar-inner">
+  <a class="brand" href="/">
+    <div class="brand-logo-mini"><img src="assets/images/logo-distrito.png" alt="Logo Distrito"></div>
+    <div class="brand-text"><strong>DISTRITO</strong><span>118</span></div>
+  </a>
+  <nav class="nav"><a href="/" class="">Início</a><a href="/produtos" class="">Produtos</a><a href="/encomenda" class="active">Encomenda</a><a href="/consulta" class="">Consultar</a><a href="/login" class=" primary">Acesso Distrito</a></nav>
+</div></header>
+<main class="container page-shell"><div class="page-title"><span class="eyebrow">Solicitação</span><h1>Fazer encomenda</h1><p>Preencha os dados do CPF ou da facção responsável.</p></div>
+<div class="order-layout">
+<form id="orderForm" class="panel">
+  <div class="form-grid">
+    <div class="field"><label>Tipo de solicitante</label><select id="customerType"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select></div>
+    <div class="field"><label>Nome / responsável</label><input id="customerName" required></div>
+    <div class="field" id="organizationField" style="display:none"><label>Nome do CNPJ</label><input id="organizationName"></div>
+    <div class="field"><label>Passaporte</label><input id="passport" required></div>
+    <div class="field"><label>Telefone no RP</label><input id="phone"></div>
+    <div class="field full"><label>Observação</label><textarea id="notes" placeholder="Prazo, combinação de entrega ou detalhes importantes."></textarea></div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px"><h3 style="margin:0">Produtos</h3><button id="addOrderItem" class="btn ghost small" type="button">+ Adicionar</button></div>
+  <div id="orderItems"></div>
+  <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Enviar encomenda</button>
+</form>
+<aside class="panel"><span class="eyebrow">Resumo</span><h2>Seu pedido</h2><div id="orderSummary" class="summary-list"></div><div class="summary-row summary-total"><span>Total</span><strong id="orderTotal">R$ 0</strong></div></aside>
+</div></main><footer class="footer"><div class="container">Distrito 118 — sistema de encomendas RP.</div></footer><div class="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase-config.js"></script><script src="assets/js/app.js"></script><script src="assets/js/pricing.js"></script><script src="assets/js/public-store.js"></script><script>setupSupabaseOrderForm()</script></body></html>

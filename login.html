@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Acesso Distrito</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-visual">
+      <div class="brand login-brand">
+        <div class="brand-logo-mini"><img src="assets/images/logo-distrito.png" alt="Logo Distrito"></div>
+        <div class="brand-text"><strong>DISTRITO</strong><span>Operational 118</span></div>
+      </div>
+      <div>
+        <div class="login-emblem"><img src="assets/images/logo-distrito.png" alt="Distrito"></div><span class="eyebrow">Acesso restrito</span>
+        <h1>Centro de controle da operação.</h1>
+        <p>Produtos, encomendas, estoque, metas e caixa em um único lugar.</p>
+      </div>
+      <div class="login-status"><span></span> Sistema operacional</div>
+    </section>
+
+    <section class="login-card panel">
+      <a href="/" class="login-back">← Voltar ao site</a>
+      <span class="eyebrow">Painel interno</span>
+      <h2>Entrar na Distrito</h2>
+      <p class="login-subtitle">Use o e-mail e a senha cadastrados pela administração.</p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">E-mail</label>
+          <input id="loginEmail" type="email" autocomplete="email" required placeholder="seu@email.com">
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="loginPassword">Senha</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
+        </div>
+        <div id="loginMessage" class="login-message" hidden></div>
+        <button id="loginButton" class="btn primary login-button" type="submit">Entrar no painel</button>
+      </form>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/login.js"></script>
+</body>
+</html>

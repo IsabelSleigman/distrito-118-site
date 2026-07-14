@@ -1,0 +1,42 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Distrito 118</title><link rel="stylesheet" href="assets/css/styles.css"></head><body>
+
+<header class="topbar"><div class="container topbar-inner">
+  <a class="brand" href="/">
+    <div class="brand-logo-mini"><img src="assets/images/logo-distrito.png" alt="Logo Distrito"></div>
+    <div class="brand-text"><strong>DISTRITO</strong><span>118</span></div>
+  </a>
+  <nav class="nav"><a href="/" class="active">Início</a><a href="/produtos" class="">Produtos</a><a href="/encomenda" class="">Encomenda</a><a href="/consulta" class="">Consultar</a><a href="/login" class=" primary">Acesso Distrito</a></nav>
+</div></header>
+
+<main class="container">
+<section class="hero">
+  <div>
+    <span class="eyebrow">Distrito 118</span>
+    <h1>Encomendas com controle, produção e organização.</h1>
+    <p>Consulte os produtos disponíveis, envie sua solicitação e acompanhe o andamento usando o código da encomenda.</p>
+    <div class="hero-actions"><a class="btn primary" href="/produtos">Ver produtos</a><a class="btn ghost" href="/encomenda">Fazer encomenda</a></div>
+  </div>
+  <aside class="hero-card"><div class="hero-logo"><img src="assets/images/logo-distrito.png" alt="Distrito 118"></div>
+    <span class="mini-title">Operação ativa</span>
+    <div class="big-number">DIST.118</div>
+    <div class="hero-lines">
+      <div class="hero-line"><span>Catálogo</span><strong>Disponível</strong></div>
+      <div class="hero-line"><span>Pedidos</span><strong>Online</strong></div>
+      <div class="hero-line"><span>Acompanhamento</span><strong>Por código</strong></div>
+    </div>
+  </aside>
+</section>
+<section class="section">
+  <div class="section-head"><div><span class="eyebrow">Catálogo</span><h2>Produtos em destaque</h2><p>Valores e disponibilidade atualizados pela equipe da Distrito.</p></div><a class="btn ghost small" href="/produtos">Ver todos</a></div>
+  <div id="featuredProducts" class="grid products"></div>
+</section>
+<section class="section">
+  <div class="section-head"><div><span class="eyebrow">Fluxo simples</span><h2>Como funciona</h2></div></div>
+  <div class="grid steps">
+    <div class="panel step"><strong>1. Escolha</strong><p>Selecione os produtos e informe as quantidades desejadas.</p></div>
+    <div class="panel step"><strong>2. Aguarde</strong><p>A equipe analisa estoque, materiais e prazo de produção.</p></div>
+    <div class="panel step"><strong>3. Acompanhe</strong><p>Use o código recebido para consultar o status do pedido.</p></div>
+  </div>
+</section>
+</main><footer class="footer"><div class="container">Distrito 118 — sistema de encomendas RP.</div></footer><div class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase-config.js"></script><script src="assets/js/app.js"></script><script src="assets/js/pricing.js"></script><script src="assets/js/public-store.js"></script><script>renderSupabaseProducts("featuredProducts",3)</script></body></html>
