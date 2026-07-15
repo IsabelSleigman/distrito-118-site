@@ -698,3 +698,7 @@ body {
 .timeline-entry.status-delivered .timeline-dot { background:#46c77a; box-shadow:0 0 0 4px rgba(70,199,122,.15); }
 .timeline-entry.status-rejected .timeline-dot { background:#e0525c; box-shadow:0 0 0 4px rgba(224,82,92,.14); }
 .timeline-entry.status-cancelled .timeline-dot { background:#85858d; box-shadow:0 0 0 4px rgba(133,133,141,.13); }
+
+/* V7.1.8 — pagamento e financeiro */
+.payment-summary { display:grid; gap:10px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+.payment-summary .summary-row { padding:8px 0; }

@@ -85,7 +85,7 @@
               <strong>${money(item.subtotal)}</strong>
             </div>
           `).join("")}
-          <div class="summary-row summary-total"><span>Total</span><strong>${money(order.total_amount)}</strong></div>
+          <div class="summary-row"><span>Pagamento</span><strong>${order.payment_type==="dirty"?"Dinheiro sujo":"Dinheiro limpo"}</strong></div><div class="summary-row"><span>Valor limpo</span><strong>${money(order.clean_amount??order.total_amount)}</strong></div><div class="summary-row"><span>Valor sujo (+30%)</span><strong>${money(order.dirty_amount??Number(order.total_amount||0)*1.3)}</strong></div><div class="summary-row"><span>Comissão do responsável (20%)</span><strong>${money(order.commission_amount??Number(order.final_amount||order.total_amount)*0.2)}</strong></div><div class="summary-row"><span>Entrada líquida no caixa</span><strong>${money(order.net_amount??Number(order.final_amount||order.total_amount)*0.8)}</strong></div><div class="summary-row summary-total"><span>Total da venda</span><strong>${money(order.final_amount??order.total_amount)}</strong></div>
           ${order.notes ? `<div class="order-note"><strong>Observação do cliente</strong><p>${esc(order.notes)}</p></div>` : ""}
         </div>
         <div>
@@ -123,7 +123,7 @@
       .from("orders")
       .select(`
         id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,
-        pricing_tier,total_amount,status,created_at,deleted_at,
+        pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,
         order_items(quantity,product_name,unit_price,subtotal),
         order_status_history(status,note,created_at)
       `)
@@ -140,7 +140,7 @@
       <td><strong class="order-code-cell">${esc(order.code)}</strong></td>
       <td>${esc(order.cnpj_name || order.customer_name)}<div class="muted-caption">${order.customer_type.toUpperCase()}</div></td>
       <td>${(order.order_items || []).reduce((sum, item) => sum + item.quantity, 0)}</td>
-      <td>${money(order.total_amount)}</td>
+      <td>${money(order.final_amount??order.total_amount)}<div class="muted-caption">${order.payment_type==="dirty"?"Sujo":"Limpo"}</div></td>
       <td>
         <select class="pricing-tier" data-id="${order.id}">
           ${tiers.map(tier => `<option value="${tier}" ${tier === (order.pricing_tier || order.customer_type) ? "selected" : ""}>${window.DistrictPricing.label(tier)}</option>`).join("")}

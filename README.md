@@ -74,3 +74,13 @@ Depois publique os arquivos e recarregue o painel com Ctrl+F5.
 - Links administrativos agora usam rotas absolutas `/admin/...`.
 - Links públicos e redirecionamentos de login/logout usam rotas absolutas com `cleanUrls`.
 "# distrito-118-site" 
+
+
+## V7.1.8 — Pagamento e caixa
+- cliente escolhe dinheiro limpo ou sujo;
+- dinheiro sujo custa 30% a mais;
+- comissão de 20% calculada sobre o valor final;
+- ao marcar a encomenda como entregue, a entrada da venda e a saída da comissão são lançadas no caixa sem duplicidade;
+- caixa administrativo conectado ao Supabase.
+
+Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar esta versão.

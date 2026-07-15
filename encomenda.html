@@ -15,12 +15,13 @@
     <div class="field"><label>Nome / responsável</label><input id="customerName" required></div>
     <div class="field" id="organizationField" style="display:none"><label>Nome do CNPJ</label><input id="organizationName"></div>
     <div class="field"><label>Passaporte</label><input id="passport" required></div>
-    <div class="field"><label>Telefone no RP</label><input id="phone"></div>
+    <div class="field"><label>Telefone no RP</label><input id="phone" required></div>
+    <div class="field"><label>Forma de pagamento</label><select id="paymentType"><option value="clean">Dinheiro limpo</option><option value="dirty">Dinheiro sujo (+30%)</option></select></div>
     <div class="field full"><label>Observação</label><textarea id="notes" placeholder="Prazo, combinação de entrega ou detalhes importantes."></textarea></div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px"><h3 style="margin:0">Produtos</h3><button id="addOrderItem" class="btn ghost small" type="button">+ Adicionar</button></div>
   <div id="orderItems"></div>
   <button class="btn primary" style="width:100%;margin-top:16px" type="submit">Enviar encomenda</button>
 </form>
-<aside class="panel"><span class="eyebrow">Resumo</span><h2>Seu pedido</h2><div id="orderSummary" class="summary-list"></div><div class="summary-row summary-total"><span>Total</span><strong id="orderTotal">R$ 0</strong></div></aside>
+<aside class="panel"><span class="eyebrow">Resumo</span><h2>Seu pedido</h2><div id="orderSummary" class="summary-list"></div><div class="payment-summary"><div class="summary-row"><span>Valor em dinheiro limpo</span><strong id="orderCleanTotal">R$ 0</strong></div><div class="summary-row"><span>Valor em dinheiro sujo (+30%)</span><strong id="orderDirtyTotal">R$ 0</strong></div></div><div class="summary-row summary-total"><span>Total escolhido</span><strong id="orderTotal">R$ 0</strong></div></aside>
 </div></main><footer class="footer"><div class="container">Distrito 118 — sistema de encomendas RP.</div></footer><div class="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase-config.js"></script><script src="assets/js/app.js"></script><script src="assets/js/pricing.js"></script><script src="assets/js/public-store.js"></script><script>setupSupabaseOrderForm()</script></body></html>
