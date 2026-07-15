@@ -718,3 +718,65 @@ body {
 .materials-required-section table { min-width:620px; }
 .order-details-card { max-height:92vh; overflow-y:auto; }
 .admin-top .btn i { width:18px; height:18px; }
+
+/* V7.2 — modal de encomenda, colaborador e plano de produção */
+.internal-order-card { width:min(1180px,calc(100vw - 32px)); max-height:94vh; overflow:hidden; padding:0; display:flex; flex-direction:column; }
+.internal-order-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:26px 30px 20px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,rgba(255,255,255,.035),transparent); }
+.internal-order-header h2 { margin:6px 0 4px; font-size:1.65rem; }
+.internal-order-header p { margin:0; color:var(--muted); font-size:.86rem; }
+.internal-order-header .modal-close { position:static; flex:0 0 auto; }
+.internal-order-form { min-height:0; display:flex; flex-direction:column; }
+.internal-order-scroll { min-height:0; overflow-y:auto; display:grid; grid-template-columns:minmax(0,1fr) 320px; }
+.internal-order-main { padding:26px 30px 30px; }
+.internal-order-summary { padding:28px 26px; border-left:1px solid var(--line); background:rgba(255,255,255,.018); position:sticky; top:0; align-self:start; min-height:100%; }
+.internal-order-summary h3 { margin:8px 0 16px; }
+.internal-order-summary .payment-summary { margin-top:0; padding-top:0; border:0; }
+.internal-order-section-title { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.internal-order-section-title > span { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:#353535; border:1px solid rgba(255,255,255,.15); font-weight:800; }
+.internal-order-section-title h3 { margin:0; }
+.internal-order-section-title p { margin:3px 0 0; color:var(--muted); font-size:.8rem; }
+.internal-order-section-title.products-title { margin-top:28px; }
+.internal-order-section-title.products-title .btn { margin-left:auto; }
+.internal-order-items { display:grid; gap:10px; }
+.internal-order-item { display:grid; grid-template-columns:minmax(0,1fr) 118px 46px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+.internal-order-item .field { margin:0; }
+.internal-order-item .remove-internal-item { height:48px; }
+.internal-order-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:16px 28px; border-top:1px solid var(--line); background:#111113; }
+.internal-order-footer > div { margin-left:auto; display:flex; gap:10px; }
+.internal-order-footer #saveInternalOrder { width:auto; margin:0; min-width:190px; }
+.internal-order-footer .status-update-error { margin:0; }
+.summary-hint { margin-top:22px; padding:16px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.025); }
+.summary-hint p { color:var(--muted); font-size:.8rem; line-height:1.55; margin:6px 0 0; }
+.production-plan-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.production-plan-block { border:1px solid var(--line); border-radius:16px; padding:16px; background:rgba(255,255,255,.018); min-height:140px; }
+.production-plan-title { display:flex; gap:10px; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--line); }
+.production-plan-title > span { width:30px; height:30px; border-radius:10px; display:grid; place-items:center; font-weight:900; background:rgba(255,255,255,.07); }
+.production-plan-title h4 { margin:0; }
+.production-plan-title p { margin:3px 0 0; color:var(--muted); font-size:.72rem; }
+.production-plan-list { display:grid; gap:9px; margin-top:13px; }
+.production-plan-list > div { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.82rem; }
+.production-plan-list strong { text-align:right; }
+.plan-separate .production-plan-title > span { color:#8ee5ad; background:rgba(40,185,90,.13); }
+.plan-produce .production-plan-title > span { color:#c7a2ff; background:rgba(135,80,220,.15); }
+.plan-missing .production-plan-title > span { color:#ff9aa0; background:rgba(220,38,50,.14); }
+.material-recipe-section { margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
+#materialComponentRows { display:grid; gap:10px; }
+.material-component-row { display:grid; grid-template-columns:minmax(0,1fr) 180px auto; gap:10px; align-items:end; }
+.material-component-row .field { margin:0; }
+
+@media (max-width: 900px) {
+  .internal-order-scroll { grid-template-columns:1fr; }
+  .internal-order-summary { border-left:0; border-top:1px solid var(--line); position:static; min-height:auto; }
+  .production-plan-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 620px) {
+  .internal-order-card { width:100%; max-height:96vh; border-radius:18px 18px 0 0; }
+  .internal-order-header,.internal-order-main,.internal-order-summary { padding-left:18px; padding-right:18px; }
+  .internal-order-item { grid-template-columns:1fr 90px 42px; }
+  .internal-order-section-title.products-title { align-items:flex-start; flex-wrap:wrap; }
+  .internal-order-section-title.products-title .btn { width:100%; margin-left:44px; }
+  .internal-order-footer { align-items:stretch; flex-direction:column; padding:14px 18px; }
+  .internal-order-footer > div { margin:0; width:100%; }
+  .internal-order-footer .btn { flex:1; }
+  .material-component-row { grid-template-columns:1fr; }
+}

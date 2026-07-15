@@ -95,3 +95,11 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - detalhes da encomenda mostram materiais necessários, disponíveis e faltantes;
 - correção da duplicação de eventos na linha do tempo;
 - execute `database/009-v7-1-9-gerentes-materiais-status.sql`.
+
+## V7.2.0-beta
+- Nova encomenda interna com layout mais amplo e resumo financeiro fixo.
+- Campo opcional para registrar uma segunda pessoa que ajudou na produção.
+- Materiais podem possuir receitas próprias, como Placa Blindada.
+- Plano de produção recursivo baseado no estoque disponível.
+- Detalhes da encomenda separam o que retirar do estoque, o que produzir e o que ainda falta obter.
+- Execute `database/010-v7-2-producao-recursiva-colaborador.sql` após a migration 009.

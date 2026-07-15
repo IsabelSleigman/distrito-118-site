@@ -1,25 +1,55 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Encomendas | Distrito</title><link rel="stylesheet" href="../assets/css/styles.css"></head><body><div class="admin-shell"><aside class="sidebar">
 <a class="sidebar-logo" href="/admin" aria-label="Distrito - Dashboard"><img src="../assets/images/logo-distrito.png" alt="Logo Distrito"><span>Operational 118</span></a>
 <nav class="sidebar-nav"><a href="/admin"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a><a href="/admin/encomendas" class="active"><i data-lucide="shopping-bag"></i><span>Encomendas</span></a><a data-admin-only="true" href="/admin/produtos"><i data-lucide="box"></i><span>Produtos</span></a><a data-admin-only="true" href="/admin/materiais"><i data-lucide="hammer"></i><span>Materiais</span></a><a data-admin-only="true" href="/admin/categorias"><i data-lucide="tags"></i><span>Categorias</span></a><a data-admin-only="true" href="/admin/estoque"><i data-lucide="layers-3"></i><span>Estoque</span></a><a href="/admin/caixa"><i data-lucide="banknote"></i><span>Caixa</span></a><a href="/"><i data-lucide="globe-2"></i><span>Voltar ao site</span></a></nav>
-<div class="beta-version">v7.1.9-beta</div></aside>
+<div class="beta-version">v7.2.0-beta</div></aside>
 <main class="admin-main"><div class="admin-top"><div><span class="eyebrow">Gestão</span><h1>Encomendas</h1></div><button id="newInternalOrderButton" class="btn primary" type="button"><i data-lucide="plus"></i> Nova encomenda</button></div>
 <section class="panel"><div class="table-wrap"><table><thead><tr><th>Código</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Tabela</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section></main></div>
 
 <div id="orderDetailsModal" class="modal-backdrop"><div class="modal-card order-details-card"><button id="closeOrderDetails" class="modal-close" type="button" aria-label="Fechar">×</button><div id="orderDetailsContent"></div></div></div>
 
-<div id="internalOrderModal" class="modal-backdrop"><div class="modal-card internal-order-card"><button id="closeInternalOrder" class="modal-close" type="button" aria-label="Fechar">×</button><span class="eyebrow">Registro interno</span><h2>Nova encomenda</h2><p class="muted-caption">Apenas administradores e gerentes podem registrar pedidos.</p>
-<form id="internalOrderForm"><div class="form-grid">
-<div class="field"><label>Tipo de cliente</label><select id="internalCustomerType"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select></div>
-<div class="field"><label>Tabela de preço</label><select id="internalPricingTier"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="alianca">Aliança</option><option value="parceria">Parceria</option></select></div>
-<div class="field"><label>Nome / responsável</label><input id="internalCustomerName" required></div>
-<div class="field" id="internalCnpjField" style="display:none"><label>Nome do CNPJ</label><input id="internalCnpjName"></div>
-<div class="field"><label>Passaporte</label><input id="internalPassport" required></div>
-<div class="field"><label>Telefone no RP</label><input id="internalPhone"></div>
-<div class="field"><label>Forma de pagamento</label><select id="internalPaymentType"><option value="clean">Dinheiro limpo</option><option value="dirty">Dinheiro sujo (+30%)</option></select></div>
-<div class="field full"><label>Observação</label><textarea id="internalNotes" placeholder="Prazo, entrega ou detalhes importantes."></textarea></div>
+<div id="internalOrderModal" class="modal-backdrop">
+  <div class="modal-card internal-order-card">
+    <header class="internal-order-header">
+      <div><span class="eyebrow">Registro interno</span><h2>Nova encomenda</h2><p>Apenas administradores e gerentes podem registrar pedidos.</p></div>
+      <button id="closeInternalOrder" class="modal-close" type="button" aria-label="Fechar">×</button>
+    </header>
+    <form id="internalOrderForm" class="internal-order-form">
+      <div class="internal-order-scroll">
+        <section class="internal-order-main">
+          <div class="internal-order-section-title"><span>1</span><div><h3>Cliente e atendimento</h3><p>Dados usados para gerar o código e acompanhar a encomenda.</p></div></div>
+          <div class="form-grid">
+            <div class="field"><label>Tipo de cliente</label><select id="internalCustomerType"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option></select></div>
+            <div class="field"><label>Tabela de preço</label><select id="internalPricingTier"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="alianca">Aliança</option><option value="parceria">Parceria</option></select></div>
+            <div class="field"><label>Nome / responsável</label><input id="internalCustomerName" required></div>
+            <div class="field" id="internalCnpjField" style="display:none"><label>Nome do CNPJ</label><input id="internalCnpjName"></div>
+            <div class="field"><label>Passaporte</label><input id="internalPassport" required></div>
+            <div class="field"><label>Telefone no RP</label><input id="internalPhone"></div>
+            <div class="field"><label>Forma de pagamento</label><select id="internalPaymentType"><option value="clean">Dinheiro limpo</option><option value="dirty">Dinheiro sujo (+30%)</option></select></div>
+            <div class="field"><label>Quem ajudou na produção</label><select id="internalAssistantId"><option value="">Sem colaborador extra</option></select></div>
+            <div class="field full"><label>Observação</label><textarea id="internalNotes" placeholder="Prazo, entrega ou detalhes importantes."></textarea></div>
+          </div>
+          <div class="internal-order-section-title products-title"><span>2</span><div><h3>Produtos</h3><p>Adicione todos os itens e quantidades solicitadas.</p></div><button id="addInternalOrderItem" class="btn ghost small" type="button">+ Adicionar produto</button></div>
+          <div id="internalOrderItems" class="internal-order-items"></div>
+        </section>
+        <aside class="internal-order-summary">
+          <span class="eyebrow">Resumo financeiro</span>
+          <h3>Valores da encomenda</h3>
+          <div class="payment-summary">
+            <div class="summary-row"><span>Valor limpo</span><strong id="internalCleanTotal">R$ 0</strong></div>
+            <div class="summary-row"><span>Valor sujo (+30%)</span><strong id="internalDirtyTotal">R$ 0</strong></div>
+            <div class="summary-row summary-total"><span>Total escolhido</span><strong id="internalFinalTotal">R$ 0</strong></div>
+            <div class="summary-row"><span>Comissão estimada (20%)</span><strong id="internalCommissionTotal">R$ 0</strong></div>
+            <div class="summary-row"><span>Líquido da Distrito</span><strong id="internalNetTotal">R$ 0</strong></div>
+          </div>
+          <div class="summary-hint"><strong>Produção sob demanda</strong><p>Depois de registrar, os detalhes mostrarão o que separar, produzir e obter.</p></div>
+        </aside>
+      </div>
+      <footer class="internal-order-footer">
+        <p id="internalOrderError" class="status-update-error" hidden></p>
+        <div><button id="cancelInternalOrder" class="btn ghost" type="button">Cancelar</button><button id="saveInternalOrder" class="btn primary" type="submit">Registrar encomenda</button></div>
+      </footer>
+    </form>
+  </div>
 </div>
-<div class="internal-order-items-head"><h3>Produtos</h3><button id="addInternalOrderItem" class="btn ghost small" type="button">+ Adicionar produto</button></div><div id="internalOrderItems"></div>
-<div class="payment-summary"><div class="summary-row"><span>Valor limpo</span><strong id="internalCleanTotal">R$ 0</strong></div><div class="summary-row"><span>Valor sujo</span><strong id="internalDirtyTotal">R$ 0</strong></div><div class="summary-row summary-total"><span>Total escolhido</span><strong id="internalFinalTotal">R$ 0</strong></div></div>
-<p id="internalOrderError" class="status-update-error" hidden></p><button id="saveInternalOrder" class="btn primary" type="submit">Registrar encomenda</button></form></div></div>
 
 <div class="toast"></div><script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../assets/js/supabase-config.js"></script><script src="../assets/js/app.js"></script><script src="../assets/js/pricing.js"></script><script src="../assets/js/admin-auth.js"></script><script src="../assets/js/orders-admin.js"></script><script>window.lucide?.createIcons(); document.addEventListener("district-auth-ready",()=>window.lucide?.createIcons());</script></body></html>
