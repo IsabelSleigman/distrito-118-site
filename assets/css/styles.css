@@ -702,3 +702,19 @@ body {
 /* V7.1.8 — pagamento e financeiro */
 .payment-summary { display:grid; gap:10px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
 .payment-summary .summary-row { padding:8px 0; }
+
+/* V7.1.9 — encomenda interna, gerentes e materiais de craft */
+[hidden] { display: none !important; }
+.catalog-contact-note { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.contact-order-panel { max-width: 760px; margin: 70px auto; padding: 42px; }
+.contact-order-panel h1 { margin: 10px 0 14px; }
+.internal-order-card { width: min(920px, calc(100vw - 32px)); max-height: 92vh; overflow-y: auto; }
+.internal-order-items-head { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:24px 0 12px; }
+.internal-order-items-head h3 { margin:0; }
+#internalOrderItems { display:grid; gap:10px; }
+#saveInternalOrder { width:100%; margin-top:20px; }
+.materials-required-section { margin-top:28px; padding-top:22px; border-top:1px solid var(--line); }
+.materials-required-section .table-wrap { border:1px solid var(--line); border-radius:14px; }
+.materials-required-section table { min-width:620px; }
+.order-details-card { max-height:92vh; overflow-y:auto; }
+.admin-top .btn i { width:18px; height:18px; }

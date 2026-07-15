@@ -44,8 +44,7 @@ function renderProducts(targetId, limit = null) {
         </div>
         <p>${p.description}</p>
         <div class="inline-actions">
-          <a class="btn primary small" href="/encomenda?produto=${p.id}">Solicitar</a>
-          <span class="badge ${p.stock > 5 ? "green" : "yellow"}">${p.stock} em estoque</span>
+          <span class="badge neutral">Produzido sob encomenda</span>
         </div>
       </div>
     </article>

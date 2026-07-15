@@ -84,3 +84,14 @@ Depois publique os arquivos e recarregue o painel com Ctrl+F5.
 - caixa administrativo conectado ao Supabase.
 
 Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar esta versão.
+
+
+## V7.1.9-beta
+- encomendas passam a ser registradas apenas no painel interno;
+- catálogo público orienta o cliente a procurar a gerência;
+- perfil `gerente` acessa Dashboard, Encomendas e Caixa;
+- produtos, materiais, categorias e estoque ficam restritos aos administradores;
+- status “Separação de materiais” renomeado para “Separação de materiais”;
+- detalhes da encomenda mostram materiais necessários, disponíveis e faltantes;
+- correção da duplicação de eventos na linha do tempo;
+- execute `database/009-v7-1-9-gerentes-materiais-status.sql`.

@@ -1,7 +1,7 @@
 (() => {
 const client=window.distritoSupabase;
 const money=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
-const labels={pending:"Aguardando análise",under_review:"Em análise",accepted:"Aceita",waiting_materials:"Aguardando materiais",in_production:"Em produção",ready:"Pronta",awaiting_delivery:"Aguardando entrega",delivered:"Entregue",rejected:"Recusada",cancelled:"Cancelada"};
+const labels={pending:"Aguardando análise",under_review:"Em análise",accepted:"Aceita",waiting_materials:"Separação de materiais",in_production:"Em produção",ready:"Pronta",awaiting_delivery:"Aguardando entrega",delivered:"Entregue",rejected:"Recusada",cancelled:"Cancelada"};
 const statusClass=value=>`status-${value||"unknown"}`;
 const esc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 async function load(){

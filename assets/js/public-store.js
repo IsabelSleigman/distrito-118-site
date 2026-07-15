@@ -3,7 +3,7 @@
   let products = [];
   const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
   const imageSrc = value => !value ? "" : value.startsWith("/assets/") ? value : value;
-  const statusLabels={pending:"Aguardando análise",under_review:"Em análise",accepted:"Aceita",waiting_materials:"Aguardando materiais",in_production:"Em produção",ready:"Pronta",awaiting_delivery:"Aguardando entrega",delivered:"Entregue",rejected:"Recusada",cancelled:"Cancelada"};
+  const statusLabels={pending:"Aguardando análise",under_review:"Em análise",accepted:"Aceita",waiting_materials:"Separação de materiais",in_production:"Em produção",ready:"Pronta",awaiting_delivery:"Aguardando entrega",delivered:"Entregue",rejected:"Recusada",cancelled:"Cancelada"};
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 
   async function loadPublicProducts() {
@@ -26,7 +26,7 @@
       el.innerHTML = list.map((p) => {
         const cpf = priceFor(p, "cpf"); const cnpj = priceFor(p, "cnpj");
         const art = p.image_url ? `<img src="${escapeHtml(imageSrc(p.image_url))}" alt="${escapeHtml(p.name)}">` : escapeHtml(p.name.substring(0,2).toUpperCase());
-        return `<article class="product-card"><div class="product-art">${art}</div><div class="product-body"><div class="product-top"><div><span class="badge green">${escapeHtml(p.product_categories?.name || "Geral")}</span><h3 style="margin-top:10px">${escapeHtml(p.name)}</h3></div></div><p>${escapeHtml(p.description || "Disponível para encomenda.")}</p><div class="public-price-grid"><span>CPF <strong>${money(cpf?.unit_price)}</strong></span><span>CNPJ <strong>${money(cnpj?.unit_price)}</strong></span></div><div class="inline-actions"><a class="btn primary small" href="/encomenda?produto=${p.id}">Solicitar</a><span class="badge neutral">Produzido sob encomenda</span></div></div></article>`;
+        return `<article class="product-card"><div class="product-art">${art}</div><div class="product-body"><div class="product-top"><div><span class="badge green">${escapeHtml(p.product_categories?.name || "Geral")}</span><h3 style="margin-top:10px">${escapeHtml(p.name)}</h3></div></div><p>${escapeHtml(p.description || "Disponível para encomenda.")}</p><div class="public-price-grid"><span>CPF <strong>${money(cpf?.unit_price)}</strong></span><span>CNPJ <strong>${money(cnpj?.unit_price)}</strong></span></div><div class="inline-actions"><span class="badge neutral">Produzido sob encomenda</span></div></div></article>`;
       }).join("") || `<div class="panel empty">Nenhum produto disponível.</div>`;
     } catch (error) { console.error(error); el.innerHTML = `<div class="panel empty">Não foi possível carregar o catálogo.</div>`; }
   };

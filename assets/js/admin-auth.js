@@ -22,7 +22,7 @@ async function loadCurrentDistrictUser(user) {
   if (roleError) console.error("Erro ao carregar permissões:", roleError);
 
   const roles = (roleRows || [])
-    .map((row) => row.user_roles?.name)
+    .map((row) => String(row.user_roles?.name || "").toLowerCase())
     .filter(Boolean);
 
   return {
@@ -33,14 +33,50 @@ async function loadCurrentDistrictUser(user) {
   };
 }
 
+function isDistrictAdmin(user) {
+  return user.roles.includes("admin");
+}
+
+function isDistrictManager(user) {
+  return user.roles.includes("gerente") || user.roles.includes("management");
+}
+
+function currentAdminSection() {
+  const page = window.location.pathname.split("/").filter(Boolean).pop() || "admin";
+  return page.replace(/\.html$/i, "");
+}
+
+function applyDistrictPermissions(user) {
+  const isAdmin = isDistrictAdmin(user);
+  const isManager = isDistrictManager(user);
+  const allowedForManager = new Set(["admin", "index", "encomendas", "caixa"]);
+  const section = currentAdminSection();
+
+  document.querySelectorAll('[data-admin-only="true"]').forEach((element) => {
+    element.hidden = !isAdmin;
+  });
+
+  if (!isAdmin && !isManager) {
+    window.location.replace("/?error=access_denied");
+    return false;
+  }
+
+  if (!isAdmin && !allowedForManager.has(section)) {
+    window.location.replace("/admin?error=access_denied");
+    return false;
+  }
+
+  return true;
+}
+
 function renderDistrictUser(user) {
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar || document.getElementById("districtUserPanel")) return;
 
-  const roleLabel = user.roles.includes("admin")
+  const roleLabel = isDistrictAdmin(user)
     ? "Administrador"
-    : user.roles.includes("management")
-      ? "Gerência"
+    : isDistrictManager(user)
+      ? "Gerente"
       : "Membro";
 
   const panel = document.createElement("div");
@@ -72,8 +108,8 @@ async function protectDistrictAdmin() {
   if (error) console.error("Erro ao verificar sessão:", error);
 
   if (!session) {
-    const page = window.location.pathname.split("/").filter(Boolean).pop() || "index";
-    const target = page === "admin" ? "index" : page.replace(/\.html$/i, "");
+    const page = currentAdminSection();
+    const target = page === "admin" ? "index" : page;
     window.location.replace(`/login?redirect=${encodeURIComponent(target)}`);
     return;
   }
@@ -82,6 +118,7 @@ async function protectDistrictAdmin() {
   if (!currentUser) return;
 
   window.currentDistrictUser = currentUser;
+  if (!applyDistrictPermissions(currentUser)) return;
   renderDistrictUser(currentUser);
   document.documentElement.classList.remove("auth-checking");
   document.documentElement.classList.add("auth-ready");
