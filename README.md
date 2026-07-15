@@ -103,3 +103,9 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Plano de produção recursivo baseado no estoque disponível.
 - Detalhes da encomenda separam o que retirar do estoque, o que produzir e o que ainda falta obter.
 - Execute `database/010-v7-2-producao-recursiva-colaborador.sql` após a migration 009.
+
+
+## V7.2.1-beta
+- Botão Nova encomenda reposicionado e destacado como ação principal.
+- Campo de auxiliares da produção alterado para texto livre.
+- Auxiliares não precisam ter conta no sistema.

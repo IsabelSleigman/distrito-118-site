@@ -8,7 +8,6 @@
   ];
 
   let orderProducts = [];
-  let staffProfiles = [];
   let materials = [];
   let materialComponents = [];
 
@@ -101,7 +100,7 @@
       <div class="order-detail-grid"><div class="summary-list">
         <div class="summary-row"><span>Cliente</span><strong>${esc(order.cnpj_name || order.customer_name)}</strong></div>
         <div class="summary-row"><span>Registrado por</span><strong>${esc(order.received_by_profile?.name || "—")}</strong></div>
-        <div class="summary-row"><span>Ajudou na produção</span><strong>${esc(order.assistant_profile?.name || "Sem colaborador extra")}</strong></div>
+        <div class="summary-row"><span>Ajudou na produção</span><strong>${esc(order.production_helpers || "Sem colaborador extra")}</strong></div>
         <div class="summary-row"><span>Tabela aplicada</span><strong>${esc(window.DistrictPricing.label(order.pricing_tier || order.customer_type))}</strong></div>
         <div class="summary-row"><span>Passaporte</span><strong>${esc(order.passport || "—")}</strong></div>
         <div class="summary-row"><span>Telefone</span><strong>${esc(order.phone || "—")}</strong></div>
@@ -125,20 +124,16 @@
   }
 
   async function loadReferences() {
-    const [productsResult, profilesResult, materialsResult, componentsResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult] = await Promise.all([
       client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
-      client.from("profiles").select("id,name,email,is_active").eq("is_active", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,is_active").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required")
     ]);
     if (productsResult.error) throw productsResult.error;
     orderProducts = productsResult.data || [];
-    staffProfiles = profilesResult.error ? [] : (profilesResult.data || []);
     materials = materialsResult.error ? [] : (materialsResult.data || []);
     materialComponents = componentsResult.error ? [] : (componentsResult.data || []);
 
-    const assistant = document.getElementById("internalAssistantId");
-    if (assistant) assistant.innerHTML = `<option value="">Sem colaborador extra</option>${staffProfiles.filter(p => p.id !== window.currentDistrictUser?.id).map(p => `<option value="${p.id}">${esc(p.name)}${p.email ? ` — ${esc(p.email)}` : ""}</option>`).join("")}`;
   }
 
   const internalProductOptions = () => orderProducts.map(product => `<option value="${product.id}">${esc(product.name)}</option>`).join("");
@@ -200,7 +195,7 @@
         input_notes: document.getElementById("internalNotes").value.trim() || null,
         input_payment_type: document.getElementById("internalPaymentType").value,
         input_pricing_tier: document.getElementById("internalPricingTier").value,
-        input_assistant_id: document.getElementById("internalAssistantId").value || null,
+        input_production_helpers: document.getElementById("internalProductionHelpers").value.trim() || null,
         input_items: rows.map(row => ({ product_id: row.querySelector(".internal-order-product").value, quantity: Math.max(1, Number(row.querySelector(".internal-order-qty").value || 1)) }))
       });
       if (error) throw error;
@@ -213,14 +208,14 @@
     const tbody = document.getElementById("ordersTable");
     tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Carregando encomendas...</td></tr>`;
     const { data, error } = await client.from("orders").select(`
-      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,assistant_id,
-      received_by_profile:profiles!orders_received_by_fkey(name,email),assistant_profile:profiles!orders_assistant_id_fkey(name,email),
+      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,production_helpers,
+      received_by_profile:profiles!orders_received_by_fkey(name,email),
       order_items(quantity,product_name,unit_price,subtotal,product_id,products(product_materials(material_id,quantity_required,materials(id,name,unit)))),
       order_status_history(status,note,created_at)
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 
-    tbody.innerHTML = (data || []).map(order => `<tr><td><strong>${esc(order.code)}</strong></td><td>${esc(order.cnpj_name || order.customer_name)}<div class="muted-caption">${order.customer_type.toUpperCase()}${order.assistant_profile?.name ? ` · com ${esc(order.assistant_profile.name)}` : ""}</div></td><td>${(order.order_items || []).reduce((sum,item) => sum + item.quantity, 0)}</td><td>${money(order.final_amount ?? order.total_amount)}<div class="muted-caption">${order.payment_type === "dirty" ? "Sujo" : "Limpo"}</div></td><td><select class="pricing-tier" data-id="${order.id}">${tiers.map(tier => `<option value="${tier}" ${tier === (order.pricing_tier || order.customer_type) ? "selected" : ""}>${window.DistrictPricing.label(tier)}</option>`).join("")}</select></td><td><span class="badge ${statusClass(order.status)}">${esc(statusLabel(order.status))}</span></td><td>${new Date(order.created_at).toLocaleDateString("pt-BR")}</td><td><div class="table-actions"><button class="icon-btn view-order" data-id="${order.id}">Detalhes</button><button class="icon-btn danger delete-order" data-id="${order.id}" data-code="${esc(order.code)}">Excluir</button></div></td></tr>`).join("") || `<tr><td colspan="8" class="empty">Nenhuma encomenda registrada.</td></tr>`;
+    tbody.innerHTML = (data || []).map(order => `<tr><td><strong>${esc(order.code)}</strong></td><td>${esc(order.cnpj_name || order.customer_name)}<div class="muted-caption">${order.customer_type.toUpperCase()}${order.production_helpers ? ` · com ${esc(order.production_helpers)}` : ""}</div></td><td>${(order.order_items || []).reduce((sum,item) => sum + item.quantity, 0)}</td><td>${money(order.final_amount ?? order.total_amount)}<div class="muted-caption">${order.payment_type === "dirty" ? "Sujo" : "Limpo"}</div></td><td><select class="pricing-tier" data-id="${order.id}">${tiers.map(tier => `<option value="${tier}" ${tier === (order.pricing_tier || order.customer_type) ? "selected" : ""}>${window.DistrictPricing.label(tier)}</option>`).join("")}</select></td><td><span class="badge ${statusClass(order.status)}">${esc(statusLabel(order.status))}</span></td><td>${new Date(order.created_at).toLocaleDateString("pt-BR")}</td><td><div class="table-actions"><button class="icon-btn view-order" data-id="${order.id}">Detalhes</button><button class="icon-btn danger delete-order" data-id="${order.id}" data-code="${esc(order.code)}">Excluir</button></div></td></tr>`).join("") || `<tr><td colspan="8" class="empty">Nenhuma encomenda registrada.</td></tr>`;
 
     document.querySelectorAll(".pricing-tier").forEach(element => element.addEventListener("change", async () => {
       element.disabled = true;
