@@ -129,3 +129,11 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Calculadora reorganizada para distinguir itens escolhidos, materiais intermediários e materiais básicos.
 - Itens repetidos vindos de diferentes receitas são consolidados antes do cálculo.
 - Plano com estoque separado em: separar, produzir e falta obter.
+
+
+## V7.3.1 — dois baús na produção
+- A produção considera Estoque Geral e Estoque da Gerência juntos.
+- O Estoque Geral é sempre consumido primeiro.
+- O Estoque da Gerência completa somente o que faltar.
+- Calculadora e detalhes indicam em qual baú cada quantidade está localizada.
+- O seletor de um único baú foi removido das encomendas.

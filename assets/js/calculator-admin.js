@@ -1,6 +1,6 @@
 (() => {
   const client = window.distritoSupabase;
-  let products = [], materials = [], components = [], selectableItems = [];
+  let products = [], materials = [], components = [], selectableItems = [], balanceRows = [];
   const strategies = new Map();
 
   const esc = value => String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
@@ -87,19 +87,46 @@
   }
 
   function buildExecutionPlan(items, considerStock) {
-    const stock = new Map(materials.map(material => [material.id, considerStock ? Math.max(0, Number(material.stock_quantity || 0) - Number(material.reserved_quantity || 0)) : 0]));
+    const balancesByScope = { geral: new Map(), gerencia: new Map() };
+    balanceRows.forEach(row => {
+      const scope = row.inventory_stocks?.scope;
+      if (!balancesByScope[scope]) return;
+      balancesByScope[scope].set(row.material_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
+    });
+    const stocks = {
+      geral: new Map(materials.map(material => [material.id, considerStock ? (balancesByScope.geral.get(material.id) || 0) : 0])),
+      gerencia: new Map(materials.map(material => [material.id, considerStock ? (balancesByScope.gerencia.get(material.id) || 0) : 0]))
+    };
     const separate = new Map(), produce = new Map(), missing = new Map();
+
+    const addLocated = (map, material, quantity, scope) => {
+      if (!material || quantity <= 0) return;
+      const key = `${material.id}:${scope}`;
+      const label = scope === "geral" ? "Estoque Geral" : "Estoque da Gerência";
+      const current = map.get(key) || { id: key, name: `${material.name} · ${label}`, unit: material.unit || "unidade", quantity: 0 };
+      current.quantity += quantity;
+      map.set(key, current);
+    };
+
+    const takeFromStocks = (material, quantity) => {
+      let remaining = quantity;
+      for (const scope of ["geral", "gerencia"]) {
+        if (!considerStock || remaining <= 0) break;
+        const available = stocks[scope].get(material.id) || 0;
+        const used = Math.min(available, remaining);
+        if (used > 0) {
+          addLocated(separate, material, used, scope);
+          stocks[scope].set(material.id, available - used);
+          remaining -= used;
+        }
+      }
+      return remaining;
+    };
 
     const consumeBasic = (materialId, quantity) => {
       const material = materialById(materialId);
       if (!material || quantity <= 0) return;
-      const available = stock.get(materialId) || 0;
-      const fromStock = considerStock ? Math.min(available, quantity) : 0;
-      if (fromStock > 0) {
-        add(separate, material, fromStock);
-        stock.set(materialId, available - fromStock);
-      }
-      const remaining = quantity - fromStock;
+      const remaining = takeFromStocks(material, quantity);
       if (remaining > 0) add(missing, material, remaining);
     };
 
@@ -110,50 +137,30 @@
       const recipe = componentsFor(materialId);
       if (!recipe.length) { consumeBasic(materialId, quantity); return; }
 
-      // Material escolhido diretamente sempre será produzido.
       const mode = direct ? "produce" : (strategies.get(materialId) || "auto");
       let quantityToProduce = 0;
-
       if (mode === "produce") {
         quantityToProduce = quantity;
       } else {
-        const available = stock.get(materialId) || 0;
-        const fromStock = considerStock ? Math.min(available, quantity) : 0;
-        if (fromStock > 0) {
-          add(separate, material, fromStock);
-          stock.set(materialId, available - fromStock);
-        }
-        const remaining = quantity - fromStock;
+        const remaining = takeFromStocks(material, quantity);
         if (remaining <= 0) return;
-
-        if (mode === "stock") {
-          // "Usar pronta" nunca abre a receita: o que não existe aparece como falta de item pronto.
-          add(missing, material, remaining);
-          return;
-        }
-        quantityToProduce = remaining; // Automático produz apenas o que faltar.
+        if (mode === "stock") { add(missing, material, remaining); return; }
+        quantityToProduce = remaining;
       }
 
       if (quantityToProduce <= 0) return;
       add(produce, material, quantityToProduce);
-      recipe.forEach(component => processMaterial(
-        component.component_material_id,
-        quantityToProduce * Number(component.quantity_required || 0),
-        { direct: false, stack: [...stack, materialId] }
-      ));
+      recipe.forEach(component => processMaterial(component.component_material_id, quantityToProduce * Number(component.quantity_required || 0), { direct: false, stack: [...stack, materialId] }));
     };
 
     items.forEach(item => {
       if (item.type === "product") {
         const product = products.find(productItem => productItem.id === item.id);
-        (product?.product_materials || []).forEach(recipe => {
-          processMaterial(recipe.material_id, item.quantity * Number(recipe.quantity_required || 0), { direct: false, stack: [] });
-        });
+        (product?.product_materials || []).forEach(recipe => processMaterial(recipe.material_id, item.quantity * Number(recipe.quantity_required || 0), { direct: false, stack: [] }));
       } else {
         processMaterial(item.id, item.quantity, { direct: true, stack: [] });
       }
     });
-
     return { separate: mapSorted(separate), produce: mapSorted(produce), missing: mapSorted(missing) };
   }
 
@@ -182,10 +189,14 @@
     section.hidden = false;
     container.innerHTML = editable.map(item => {
       const material = materialById(item.id);
-      const available = Math.max(0, Number(material?.stock_quantity || 0) - Number(material?.reserved_quantity || 0));
+      const generalRow = balanceRows.find(balance => balance.material_id === item.id && balance.inventory_stocks?.scope === "geral");
+      const managementRow = balanceRows.find(balance => balance.material_id === item.id && balance.inventory_stocks?.scope === "gerencia");
+      const generalAvailable = Math.max(0, Number(generalRow?.quantity || 0) - Number(generalRow?.reserved_quantity || 0));
+      const managementAvailable = Math.max(0, Number(managementRow?.quantity || 0) - Number(managementRow?.reserved_quantity || 0));
+      const available = generalAvailable + managementAvailable;
       const mode = strategies.get(item.id) || "auto";
       return `<div class="calculator-strategy-row">
-        <div><strong>${esc(item.name)}</strong><span>${formatQty(item.quantity)} ${esc(item.unit)} como dependência · ${formatQty(available)} disponível(is)</span></div>
+        <div><strong>${esc(item.name)}</strong><span>${formatQty(item.quantity)} ${esc(item.unit)} como dependência · Geral: ${formatQty(generalAvailable)} · Gerência: ${formatQty(managementAvailable)} · Total: ${formatQty(available)}</span></div>
         <div class="field"><label>Como obter a dependência</label><select class="calculator-strategy" data-material-id="${item.id}">
           <option value="auto" ${mode === "auto" ? "selected" : ""}>Automático</option>
           <option value="stock" ${mode === "stock" ? "selected" : ""}>Usar pronta</option>
@@ -237,17 +248,20 @@
 
   async function load() {
     window.DistrictLoader?.show("Carregando receitas e materiais...");
-    const [productsResult, materialsResult, componentsResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult, balancesResult] = await Promise.all([
       client.from("products").select("id,name,product_materials(material_id,quantity_required,materials(id,name,unit))").eq("is_active", true).eq("allows_order", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity").eq("is_active", true).order("name"),
-      client.from("material_components").select("material_id,component_material_id,quantity_required")
+      client.from("material_components").select("material_id,component_material_id,quantity_required"),
+      client.from("inventory_balances").select("material_id,quantity,reserved_quantity,inventory_stocks!inner(scope)")
     ]);
     if (productsResult.error) throw productsResult.error;
     if (materialsResult.error) throw materialsResult.error;
     if (componentsResult.error) throw componentsResult.error;
+    if (balancesResult.error) throw balancesResult.error;
     products = productsResult.data || [];
     materials = materialsResult.data || [];
     components = componentsResult.data || [];
+    balanceRows = balancesResult.data || [];
     selectableItems = [
       ...products.map(item => ({ key: `product:${item.id}` })),
       ...materials.filter(item => isCraftable(item.id)).map(item => ({ key: `material:${item.id}` }))

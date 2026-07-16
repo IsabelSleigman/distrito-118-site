@@ -10,6 +10,7 @@
   let orderProducts = [];
   let materials = [];
   let materialComponents = [];
+  let inventoryBalances = [];
   let currentEditingOrder = null;
 
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -27,51 +28,58 @@
   }
 
   function buildProductionPlan(order) {
-    const stockRemaining = new Map(materials.map(item => [item.id, Math.max(0, Number(item.stock_quantity || 0) - Number(item.reserved_quantity || 0))]));
-    const direct = new Map();
-    const separate = new Map();
-    const produce = new Map();
-    const missing = new Map();
-
-    const add = (map, material, amount) => {
-      if (!material || amount <= 0) return;
-      const current = map.get(material.id) || { id: material.id, name: material.name, unit: material.unit || "unidade", quantity: 0 };
-      current.quantity += amount;
-      map.set(material.id, current);
+    const balancesByScope = { geral: new Map(), gerencia: new Map() };
+    inventoryBalances.forEach(row => {
+      const scope = row.inventory_stocks?.scope;
+      if (!balancesByScope[scope]) return;
+      balancesByScope[scope].set(row.material_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
+    });
+    const stocks = {
+      geral: new Map(materials.map(item => [item.id, balancesByScope.geral.get(item.id) || 0])),
+      gerencia: new Map(materials.map(item => [item.id, balancesByScope.gerencia.get(item.id) || 0]))
     };
-
+    const direct = new Map(), separate = new Map(), produce = new Map(), missing = new Map();
+    const add = (map, material, amount, keySuffix = "", displayName = null) => {
+      if (!material || amount <= 0) return;
+      const key = `${material.id}${keySuffix}`;
+      const current = map.get(key) || { id: key, name: displayName || material.name, unit: material.unit || "unidade", quantity: 0 };
+      current.quantity += amount; map.set(key, current);
+    };
+    const take = (material, quantity) => {
+      let remaining = quantity;
+      for (const scope of ["geral", "gerencia"]) {
+        if (remaining <= 0) break;
+        const available = stocks[scope].get(material.id) || 0;
+        const used = Math.min(available, remaining);
+        if (used > 0) {
+          const label = scope === "geral" ? "Estoque Geral" : "Estoque da Gerência";
+          add(separate, material, used, `:${scope}`, `${material.name} · ${label}`);
+          stocks[scope].set(material.id, available - used);
+          remaining -= used;
+        }
+      }
+      return remaining;
+    };
     const consume = (materialId, quantity, stack = []) => {
       const material = materialById(materialId);
       if (!material || quantity <= 0) return;
       if (stack.includes(materialId)) { add(missing, material, quantity); return; }
-
-      const available = stockRemaining.get(materialId) || 0;
-      const fromStock = Math.min(available, quantity);
-      if (fromStock > 0) {
-        add(separate, material, fromStock);
-        stockRemaining.set(materialId, available - fromStock);
-      }
-
-      const remaining = quantity - fromStock;
+      const remaining = take(material, quantity);
       if (remaining <= 0) return;
       const recipe = componentsFor(materialId);
       if (!recipe.length) { add(missing, material, remaining); return; }
-
       add(produce, material, remaining);
-      for (const component of recipe) consume(component.component_material_id, remaining * Number(component.quantity_required || 0), [...stack, materialId]);
+      recipe.forEach(component => consume(component.component_material_id, remaining * Number(component.quantity_required || 0), [...stack, materialId]));
     };
-
     for (const item of order.order_items || []) {
       for (const recipe of item.products?.product_materials || []) {
         const material = materialById(recipe.material_id) || recipe.materials;
         if (!material) continue;
         const quantity = Number(item.quantity || 0) * Number(recipe.quantity_required || 0);
-        add(direct, material, quantity);
-        consume(material.id, quantity);
+        add(direct, material, quantity); consume(material.id, quantity);
       }
     }
-
-    const sort = map => [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    const sort = map => [...map.values()].sort((a,b) => a.name.localeCompare(b.name,"pt-BR"));
     return { direct: sort(direct), separate: sort(separate), produce: sort(produce), missing: sort(missing) };
   }
 
@@ -98,7 +106,7 @@
         <div class="summary-row"><span>Cliente</span><strong>${esc(order.cnpj_name || order.customer_name)}</strong></div>
         <div class="summary-row"><span>Registrado por</span><strong>${esc(order.received_by_profile?.name || "—")}</strong></div>
         <div class="summary-row"><span>Ajudou na produção</span><strong>${esc(order.production_helpers || "Sem colaborador extra")}</strong></div>
-        <div class="summary-row"><span>Tabela aplicada</span><strong>${esc(window.DistrictPricing.label(order.pricing_tier || order.customer_type))}</strong></div>
+        <div class="summary-row"><span>Tabela aplicada</span><strong>${esc(window.DistrictPricing.label(order.pricing_tier || order.customer_type))}</strong></div><div class="summary-row"><span>Origem dos materiais</span><strong>Geral primeiro; Gerência para completar</strong></div>
         <div class="summary-row"><span>Passaporte</span><strong>${esc(order.passport || "—")}</strong></div>
         <div class="summary-row"><span>Telefone</span><strong>${esc(order.phone || "—")}</strong></div>
         ${(order.order_items || []).map(item => `<div class="summary-row"><span>${item.quantity}x ${esc(item.product_name)}</span><strong>${money(item.subtotal)}</strong></div>`).join("")}
@@ -121,15 +129,17 @@
   }
 
   async function loadReferences() {
-    const [productsResult, materialsResult, componentsResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult, balancesResult] = await Promise.all([
       client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,is_active").eq("is_active", true).order("name"),
-      client.from("material_components").select("material_id,component_material_id,quantity_required")
+      client.from("material_components").select("material_id,component_material_id,quantity_required"),
+      client.from("inventory_balances").select("material_id,quantity,reserved_quantity,inventory_stocks!inner(scope)")
     ]);
     if (productsResult.error) throw productsResult.error;
     orderProducts = productsResult.data || [];
     materials = materialsResult.error ? [] : (materialsResult.data || []);
     materialComponents = componentsResult.error ? [] : (componentsResult.data || []);
+    inventoryBalances = balancesResult.error ? [] : (balancesResult.data || []);
 
   }
 
@@ -189,7 +199,7 @@
       document.getElementById("internalPassport").value = order.passport || "";
       document.getElementById("internalPhone").value = order.phone || "";
       document.getElementById("internalPaymentType").value = order.payment_type || "clean";
-      document.getElementById("internalProductionHelpers").value = order.production_helpers || "";
+            document.getElementById("internalProductionHelpers").value = order.production_helpers || "";
       document.getElementById("internalNotes").value = order.notes || "";
       const isCnpj = order.customer_type === "cnpj";
       document.getElementById("internalCnpjField").style.display = isCnpj ? "flex" : "none";
@@ -229,6 +239,7 @@
       if (editing) payload.input_order_id = currentEditingOrder.id;
       const { data, error } = await client.rpc(rpcName, payload);
       if (error) throw error;
+      const orderId = data.id || currentEditingOrder?.id;
       const code = data.code || currentEditingOrder?.code || "";
       closeInternalOrder();
       toast(editing ? `Encomenda ${code} atualizada.` : `Encomenda ${code} registrada. Código pronto para consulta.`);
@@ -241,7 +252,7 @@
     const tbody = document.getElementById("ordersTable");
     tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Carregando encomendas...</td></tr>`;
     const { data, error } = await client.from("orders").select(`
-      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,production_helpers,
+      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,production_helpers,stock_scope,
       received_by_profile:profiles!orders_received_by_fkey(name,email),
       order_items(quantity,product_name,unit_price,subtotal,product_id,products(product_materials(material_id,quantity_required,materials(id,name,unit)))),
       order_status_history(status,note,created_at)
