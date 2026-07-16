@@ -129,9 +129,3 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Calculadora reorganizada para distinguir itens escolhidos, materiais intermediários e materiais básicos.
 - Itens repetidos vindos de diferentes receitas são consolidados antes do cálculo.
 - Plano com estoque separado em: separar, produzir e falta obter.
-
-## V7.2.6-beta
-- Calculadora permite escolher a estratégia de cada material intermediário.
-- Automático usa o estoque pronto e produz somente a diferença.
-- Usar pronta mantém o intermediário sem abrir sua receita.
-- Produzir ignora o estoque do intermediário e calcula todos os componentes.

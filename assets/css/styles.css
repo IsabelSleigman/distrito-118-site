@@ -871,10 +871,17 @@ body {
 @media(max-width:1200px){.calculator-summary-grid{grid-template-columns:1fr}.calculator-plan-grid{grid-template-columns:1fr 1fr}.plan-missing{grid-column:1/-1}}
 @media(max-width:700px){.calculator-explanation{flex-direction:column}.calculator-explanation strong{white-space:normal}.calculator-plan-grid{grid-template-columns:1fr}.plan-missing{grid-column:auto}}
 
-/* V7.2.6 — estratégia manual para materiais intermediários */
-.calculator-strategy-section{margin:0 0 20px;padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.025)}
-.calculator-strategy-heading{margin-bottom:13px}.calculator-strategy-heading h3{margin:5px 0 4px;font-size:1.05rem}.calculator-strategy-heading p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.55}
-.calculator-strategies{display:grid;gap:9px}.calculator-strategy-row{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px;align-items:end;padding:12px 14px;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#111113}
-.calculator-strategy-info{display:grid;gap:4px}.calculator-strategy-info strong{font-size:.9rem}.calculator-strategy-info span{color:var(--muted);font-size:.76rem}
-.calculator-strategy-field{margin:0}.calculator-strategy-field label{font-size:.67rem}.calculator-strategy-field select{min-height:42px}
-@media(max-width:700px){.calculator-strategy-row{grid-template-columns:1fr;align-items:stretch}.calculator-strategy-field{width:100%}}
+/* V7.2.7 — separa produção direta das dependências na calculadora */
+.calculator-summary-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.plan-direct-production .production-plan-title>span{background:rgba(16,185,129,.16);color:#6ee7b7}
+.calculator-strategies-section{margin-top:22px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.025)}
+.calculator-strategies-section .calculator-stock-heading{margin:0 0 16px;padding:0;border:0}
+.calculator-strategies-section h3{margin:5px 0 5px;font-size:1.15rem}
+.calculator-strategies{display:grid;gap:12px}
+.calculator-strategy-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,310px);gap:20px;align-items:end;padding:16px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#101012}
+.calculator-strategy-row>div:first-child{display:flex;flex-direction:column;gap:5px}
+.calculator-strategy-row>div:first-child span{font-size:.78rem;color:var(--text-muted)}
+.calculator-strategy-row .field{margin:0}
+.calculator-strategy-row select{width:100%}
+@media(max-width:1200px){.calculator-summary-four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.calculator-summary-four{grid-template-columns:1fr}.calculator-strategy-row{grid-template-columns:1fr}}
