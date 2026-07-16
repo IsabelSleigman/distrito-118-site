@@ -109,3 +109,10 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Botão Nova encomenda reposicionado e destacado como ação principal.
 - Campo de auxiliares da produção alterado para texto livre.
 - Auxiliares não precisam ter conta no sistema.
+
+
+## V7.2.3-beta
+- Calculadora de craft acessível por administradores e gerentes.
+- Soma de múltiplos produtos e receitas intermediárias.
+- Modos com e sem estoque atual.
+- Edição de encomendas não finalizadas com recálculo de preços, pagamento, comissão e plano de produção.

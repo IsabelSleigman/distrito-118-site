@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Encomendas | Distrito</title><link rel="stylesheet" href="../assets/css/styles.css"></head><body><div class="admin-shell"><aside class="sidebar">
 <a class="sidebar-logo" href="/admin" aria-label="Distrito - Dashboard"><img src="../assets/images/logo-distrito.png" alt="Logo Distrito"><span>Operational 118</span></a>
-<nav class="sidebar-nav"><a href="/admin"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a><a href="/admin/encomendas" class="active"><i data-lucide="shopping-bag"></i><span>Encomendas</span></a><a data-admin-only="true" href="/admin/produtos"><i data-lucide="box"></i><span>Produtos</span></a><a data-admin-only="true" href="/admin/materiais"><i data-lucide="hammer"></i><span>Materiais</span></a><a data-admin-only="true" href="/admin/categorias"><i data-lucide="tags"></i><span>Categorias</span></a><a data-admin-only="true" href="/admin/estoque"><i data-lucide="layers-3"></i><span>Estoque</span></a><a href="/admin/caixa"><i data-lucide="banknote"></i><span>Caixa</span></a><a href="/"><i data-lucide="globe-2"></i><span>Voltar ao site</span></a></nav>
-<div class="beta-version">v7.2.1-beta</div></aside>
+<nav class="sidebar-nav"><a href="/admin"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a><a href="/admin/encomendas" class="active"><i data-lucide="shopping-bag"></i><span>Encomendas</span></a><a href="/admin/calculadora"><i data-lucide="calculator"></i><span>Calculadora</span></a><a data-admin-only="true" href="/admin/produtos"><i data-lucide="box"></i><span>Produtos</span></a><a data-admin-only="true" href="/admin/materiais"><i data-lucide="hammer"></i><span>Materiais</span></a><a data-admin-only="true" href="/admin/categorias"><i data-lucide="tags"></i><span>Categorias</span></a><a data-admin-only="true" href="/admin/estoque"><i data-lucide="layers-3"></i><span>Estoque</span></a><a href="/admin/caixa"><i data-lucide="banknote"></i><span>Caixa</span></a><a href="/"><i data-lucide="globe-2"></i><span>Voltar ao site</span></a></nav>
+<div class="beta-version">v7.2.3-beta</div></aside>
 <main class="admin-main"><div class="admin-top"><div><span class="eyebrow">Gestão</span><h1>Encomendas</h1></div><button id="newInternalOrderButton" class="btn new-order-button" type="button"><span class="new-order-button-icon"><i data-lucide="plus"></i></span><span>Nova encomenda</span></button></div>
 <section class="panel"><div class="table-wrap"><table><thead><tr><th>Código</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Tabela</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section></main></div>
 
@@ -10,10 +10,10 @@
 <div id="internalOrderModal" class="modal-backdrop">
   <div class="modal-card internal-order-card">
     <header class="internal-order-header">
-      <div><span class="eyebrow">Registro interno</span><h2>Nova encomenda</h2><p>Apenas administradores e gerentes podem registrar pedidos.</p></div>
+      <div><span class="eyebrow" id="internalOrderEyebrow">Registro interno</span><h2 id="internalOrderModalTitle">Nova encomenda</h2><p>Apenas administradores e gerentes podem registrar pedidos.</p></div>
       <button id="closeInternalOrder" class="modal-close" type="button" aria-label="Fechar">×</button>
     </header>
-    <form id="internalOrderForm" class="internal-order-form">
+    <form id="internalOrderForm" class="internal-order-form"><input id="internalOrderId" type="hidden">
       <div class="internal-order-scroll">
         <section class="internal-order-main">
           <div class="internal-order-section-title"><span>1</span><div><h3>Cliente e atendimento</h3><p>Dados usados para gerar o código e acompanhar a encomenda.</p></div></div>

@@ -823,3 +823,24 @@ body {
   .admin-top { align-items:stretch; flex-direction:column; }
   .new-order-button { width:100%; }
 }
+
+/* V7.2.3 — calculadora de craft e edição de encomendas */
+.admin-subtitle { margin:6px 0 0; color:var(--muted); font-size:.86rem; }
+.calculator-layout { display:grid; grid-template-columns:minmax(360px,.8fr) minmax(0,1.2fr); gap:20px; align-items:start; }
+.calculator-builder { position:sticky; top:24px; }
+.calculator-mode { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:18px; }
+.calculator-mode h3 { margin:0 0 4px; }
+.calculator-mode p { margin:0; color:var(--muted); font-size:.8rem; }
+.calculator-stock-toggle { display:flex; align-items:center; gap:9px; color:var(--text); font-size:.78rem; font-weight:800; cursor:pointer; }
+.calculator-stock-toggle input { width:18px; height:18px; accent-color:#e5e5e5; }
+.calculator-items { display:grid; gap:10px; margin-bottom:14px; }
+.calculator-item { display:grid; grid-template-columns:minmax(0,1fr) 110px 44px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+.calculator-item .field { margin:0; }
+.calculator-item .calculator-remove { height:48px; }
+.calculator-results { min-height:420px; }
+.calculator-plan-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.plan-total .production-plan-title > span { color:#e8e8eb; background:rgba(255,255,255,.09); }
+.calculator-empty-list { color:var(--muted); font-size:.78rem; line-height:1.5; margin:12px 0 0; }
+.empty-state { min-height:260px; display:grid; place-items:center; text-align:center; color:var(--muted); border:1px dashed rgba(255,255,255,.14); border-radius:16px; }
+@media (max-width:1000px){.calculator-layout{grid-template-columns:1fr}.calculator-builder{position:static}}
+@media (max-width:650px){.calculator-item{grid-template-columns:1fr 90px 42px}.calculator-plan-grid{grid-template-columns:1fr}.calculator-mode{align-items:flex-start;flex-direction:column}}

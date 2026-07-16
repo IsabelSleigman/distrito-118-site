@@ -10,6 +10,7 @@
   let orderProducts = [];
   let materials = [];
   let materialComponents = [];
+  let currentEditingOrder = null;
 
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
   const esc = value => String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
@@ -168,13 +169,42 @@
     document.getElementById("internalNetTotal").textContent = money(final * .8);
   }
 
-  function closeInternalOrder() { document.getElementById("internalOrderModal").classList.remove("open"); }
-  function openInternalOrder() {
-    document.getElementById("internalOrderForm").reset();
+  function closeInternalOrder() {
+    document.getElementById("internalOrderModal").classList.remove("open");
+    currentEditingOrder = null;
+  }
+
+  function openInternalOrder(order = null) {
+    const form = document.getElementById("internalOrderForm");
+    form.reset();
     document.getElementById("internalOrderItems").innerHTML = "";
-    document.getElementById("internalCnpjField").style.display = "none";
     document.getElementById("internalOrderError").hidden = true;
-    addInternalItem(); updateInternalTotals();
+    currentEditingOrder = order;
+    document.getElementById("internalOrderId").value = order?.id || "";
+    document.getElementById("internalOrderModalTitle").textContent = order ? `Editar ${order.code}` : "Nova encomenda";
+    document.getElementById("internalOrderEyebrow").textContent = order ? "Alteração interna" : "Registro interno";
+    document.getElementById("saveInternalOrder").textContent = order ? "Salvar alterações" : "Registrar encomenda";
+
+    if (order) {
+      document.getElementById("internalCustomerType").value = order.customer_type || "cpf";
+      document.getElementById("internalPricingTier").value = order.pricing_tier || order.customer_type || "cpf";
+      document.getElementById("internalCustomerName").value = order.customer_name || "";
+      document.getElementById("internalCnpjName").value = order.cnpj_name || "";
+      document.getElementById("internalPassport").value = order.passport || "";
+      document.getElementById("internalPhone").value = order.phone || "";
+      document.getElementById("internalPaymentType").value = order.payment_type || "clean";
+      document.getElementById("internalProductionHelpers").value = order.production_helpers || "";
+      document.getElementById("internalNotes").value = order.notes || "";
+      const isCnpj = order.customer_type === "cnpj";
+      document.getElementById("internalCnpjField").style.display = isCnpj ? "flex" : "none";
+      document.getElementById("internalCnpjName").required = isCnpj;
+      (order.order_items || []).forEach(item => addInternalItem(item.product_id, item.quantity));
+    } else {
+      document.getElementById("internalCnpjField").style.display = "none";
+      document.getElementById("internalCnpjName").required = false;
+      addInternalItem();
+    }
+    updateInternalTotals();
     document.getElementById("internalOrderModal").classList.add("open");
   }
 
@@ -186,7 +216,7 @@
     if (!rows.length) return toast("Adicione pelo menos um produto.");
     button.disabled = true; button.textContent = "Registrando..."; errorBox.hidden = true;
     try {
-      const { data, error } = await client.rpc("create_internal_order", {
+      const payload = {
         input_customer_type: document.getElementById("internalCustomerType").value,
         input_customer_name: document.getElementById("internalCustomerName").value.trim(),
         input_cnpj_name: document.getElementById("internalCnpjName").value.trim() || null,
@@ -197,11 +227,18 @@
         input_pricing_tier: document.getElementById("internalPricingTier").value,
         input_production_helpers: document.getElementById("internalProductionHelpers").value.trim() || null,
         input_items: rows.map(row => ({ product_id: row.querySelector(".internal-order-product").value, quantity: Math.max(1, Number(row.querySelector(".internal-order-qty").value || 1)) }))
-      });
+      };
+      const editing = Boolean(currentEditingOrder);
+      const rpcName = editing ? "update_internal_order" : "create_internal_order";
+      if (editing) payload.input_order_id = currentEditingOrder.id;
+      const { data, error } = await client.rpc(rpcName, payload);
       if (error) throw error;
-      closeInternalOrder(); toast(`Encomenda ${data.code} registrada. Código pronto para consulta.`); await load();
+      const code = data.code || currentEditingOrder?.code || "";
+      closeInternalOrder();
+      toast(editing ? `Encomenda ${code} atualizada.` : `Encomenda ${code} registrada. Código pronto para consulta.`);
+      await load();
     } catch (error) { console.error(error); errorBox.textContent = error.message || "Não foi possível registrar a encomenda."; errorBox.hidden = false; }
-    finally { button.disabled = false; button.textContent = "Registrar encomenda"; }
+    finally { button.disabled = false; button.textContent = currentEditingOrder ? "Salvar alterações" : "Registrar encomenda"; }
   }
 
   async function load() {
@@ -215,7 +252,7 @@
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 
-    tbody.innerHTML = (data || []).map(order => `<tr><td><strong>${esc(order.code)}</strong></td><td>${esc(order.cnpj_name || order.customer_name)}<div class="muted-caption">${order.customer_type.toUpperCase()}${order.production_helpers ? ` · com ${esc(order.production_helpers)}` : ""}</div></td><td>${(order.order_items || []).reduce((sum,item) => sum + item.quantity, 0)}</td><td>${money(order.final_amount ?? order.total_amount)}<div class="muted-caption">${order.payment_type === "dirty" ? "Sujo" : "Limpo"}</div></td><td><select class="pricing-tier" data-id="${order.id}">${tiers.map(tier => `<option value="${tier}" ${tier === (order.pricing_tier || order.customer_type) ? "selected" : ""}>${window.DistrictPricing.label(tier)}</option>`).join("")}</select></td><td><span class="badge ${statusClass(order.status)}">${esc(statusLabel(order.status))}</span></td><td>${new Date(order.created_at).toLocaleDateString("pt-BR")}</td><td><div class="table-actions"><button class="icon-btn view-order" data-id="${order.id}">Detalhes</button><button class="icon-btn danger delete-order" data-id="${order.id}" data-code="${esc(order.code)}">Excluir</button></div></td></tr>`).join("") || `<tr><td colspan="8" class="empty">Nenhuma encomenda registrada.</td></tr>`;
+    tbody.innerHTML = (data || []).map(order => `<tr><td><strong>${esc(order.code)}</strong></td><td>${esc(order.cnpj_name || order.customer_name)}<div class="muted-caption">${order.customer_type.toUpperCase()}${order.production_helpers ? ` · com ${esc(order.production_helpers)}` : ""}</div></td><td>${(order.order_items || []).reduce((sum,item) => sum + item.quantity, 0)}</td><td>${money(order.final_amount ?? order.total_amount)}<div class="muted-caption">${order.payment_type === "dirty" ? "Sujo" : "Limpo"}</div></td><td><select class="pricing-tier" data-id="${order.id}">${tiers.map(tier => `<option value="${tier}" ${tier === (order.pricing_tier || order.customer_type) ? "selected" : ""}>${window.DistrictPricing.label(tier)}</option>`).join("")}</select></td><td><span class="badge ${statusClass(order.status)}">${esc(statusLabel(order.status))}</span></td><td>${new Date(order.created_at).toLocaleDateString("pt-BR")}</td><td><div class="table-actions"><button class="icon-btn edit-order" data-id="${order.id}">Editar</button><button class="icon-btn view-order" data-id="${order.id}">Detalhes</button><button class="icon-btn danger delete-order" data-id="${order.id}" data-code="${esc(order.code)}">Excluir</button></div></td></tr>`).join("") || `<tr><td colspan="8" class="empty">Nenhuma encomenda registrada.</td></tr>`;
 
     document.querySelectorAll(".pricing-tier").forEach(element => element.addEventListener("change", async () => {
       element.disabled = true;
@@ -223,6 +260,11 @@
       element.disabled = false;
       if (pricingError) { toast(pricingError.message || "Erro ao recalcular preço."); return load(); }
       toast(`Tabela ${window.DistrictPricing.label(element.value)} aplicada.`); await load();
+    }));
+    document.querySelectorAll(".edit-order").forEach(element => element.addEventListener("click", () => {
+      const order = data.find(item => item.id === element.dataset.id);
+      if (["delivered", "cancelled"].includes(order?.status)) return toast("Encomendas entregues ou canceladas não podem ser editadas.");
+      openInternalOrder(order);
     }));
     document.querySelectorAll(".view-order").forEach(element => element.addEventListener("click", () => openDetails(data.find(item => item.id === element.dataset.id))));
     document.querySelectorAll(".delete-order").forEach(element => element.addEventListener("click", async () => {
