@@ -116,3 +116,11 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Soma de múltiplos produtos e receitas intermediárias.
 - Modos com e sem estoque atual.
 - Edição de encomendas não finalizadas com recálculo de preços, pagamento, comissão e plano de produção.
+
+
+## V7.2.4-beta
+- Calculadora aceita produtos e materiais produzíveis.
+- Receitas são consolidadas recursivamente e podem considerar o estoque.
+- Loading global nas páginas públicas e administrativas.
+- Consulta pública remove status consecutivos duplicados.
+- Migration 014 remove o trigger antigo de update e protege o histórico contra duplicações.

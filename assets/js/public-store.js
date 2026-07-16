@@ -53,10 +53,16 @@
         client.rpc("get_public_order_by_code",{input_code:code}),
         client.rpc("get_public_order_timeline_by_code",{input_code:code})
       ]);
-      if(error||!data){result.innerHTML=`<div class="panel empty">Encomenda não encontrada. Confira o código e tente novamente.</div>`;return;}
+      if(error||!data){result.innerHTML=`<div class="panel empty">Encomenda não encontrada. Confira o código e tente novamente.</div>`;window.DistrictLoader?.hide();return;}
       if(timelineError) console.error(timelineError);
-      const history=Array.isArray(timeline)?timeline:[];
+      const rawHistory=Array.isArray(timeline)?timeline:[];
+      const history=[...rawHistory].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).filter((entry,index,array)=>{
+        if(!index)return true;
+        const previous=array[index-1];
+        return previous.status!==entry.status;
+      });
       result.innerHTML=`<div class="panel"><div class="section-head"><div><span class="eyebrow">Encomenda</span><h2>${escapeHtml(data.code)}</h2></div><span class="badge ${data.status==="delivered"?"green":["rejected","cancelled"].includes(data.status)?"red":"yellow"}">${escapeHtml(statusLabels[data.status]||data.status)}</span></div><div class="summary-list"><div class="summary-row"><span>Cliente</span><strong>${escapeHtml(data.customer_display)}</strong></div>${(data.items||[]).map(i=>`<div class="summary-row"><span>${i.quantity}x ${escapeHtml(i.product_name)}</span><strong>${money(i.subtotal)}</strong></div>`).join("")}<div class="summary-row"><span>Forma de pagamento</span><strong>${data.payment_type==="dirty"?"Dinheiro sujo":"Dinheiro limpo"}</strong></div><div class="summary-row"><span>Valor limpo</span><strong>${money(data.clean_amount??data.total_amount)}</strong></div><div class="summary-row"><span>Valor sujo</span><strong>${money(data.dirty_amount??Number(data.total_amount||0)*1.3)}</strong></div><div class="summary-row summary-total"><span>Total escolhido</span><strong>${money(data.final_amount??data.total_amount)}</strong></div></div><div class="public-order-timeline"><h3>Linha do tempo</h3><div class="order-timeline">${history.map((entry,index)=>`<div class="timeline-entry ${index===history.length-1?"current":""}"><span class="timeline-dot"></span><div><strong>${escapeHtml(statusLabels[entry.status]||entry.status)}</strong><time>${new Date(entry.created_at).toLocaleString("pt-BR")}</time>${entry.note?`<p>${escapeHtml(entry.note)}</p>`:""}</div></div>`).join("")||`<div class="empty">Nenhuma atualização registrada.</div>`}</div></div></div>`;
+      window.DistrictLoader?.hide();
     }
     form.addEventListener("submit",e=>{e.preventDefault();search(document.getElementById("lookupCode").value);});
     const code=new URLSearchParams(location.search).get("codigo");

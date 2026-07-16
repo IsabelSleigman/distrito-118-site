@@ -23,11 +23,7 @@
 
   function uniqueHistory(entries = []) {
     const sorted = [...entries].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    return sorted.filter((entry, index) => {
-      if (!index) return true;
-      const previous = sorted[index - 1];
-      return !(previous.status === entry.status && String(previous.note || "").trim() === String(entry.note || "").trim() && Math.abs(new Date(entry.created_at) - new Date(previous.created_at)) < 5000);
-    });
+    return sorted.filter((entry, index) => !index || sorted[index - 1].status !== entry.status);
   }
 
   function buildProductionPlan(order) {

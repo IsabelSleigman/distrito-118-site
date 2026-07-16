@@ -844,3 +844,15 @@ body {
 .empty-state { min-height:260px; display:grid; place-items:center; text-align:center; color:var(--muted); border:1px dashed rgba(255,255,255,.14); border-radius:16px; }
 @media (max-width:1000px){.calculator-layout{grid-template-columns:1fr}.calculator-builder{position:static}}
 @media (max-width:650px){.calculator-item{grid-template-columns:1fr 90px 42px}.calculator-plan-grid{grid-template-columns:1fr}.calculator-mode{align-items:flex-start;flex-direction:column}}
+
+
+/* V7.2.4 — loading global e calculadora híbrida */
+.global-page-loader{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#1b1b1e 0,#09090a 48%,#020203 100%);opacity:1;visibility:visible;transition:opacity .28s ease,visibility .28s ease}
+.global-page-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.global-loader-card{width:min(340px,calc(100vw - 36px));display:grid;justify-items:center;gap:12px;padding:30px;border:1px solid rgba(255,255,255,.13);border-radius:22px;background:rgba(16,16,18,.94);box-shadow:0 26px 80px rgba(0,0,0,.65);text-align:center}
+.global-loader-card img{width:78px;height:78px;object-fit:contain;border-radius:16px;background:#050505}
+.global-loader-card strong{letter-spacing:.18em;font-size:.84rem}.global-loader-card p{margin:0;color:var(--muted);font-size:.82rem}
+.global-loader-spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.13);border-top-color:#fff;border-radius:50%;animation:district-spin .75s linear infinite}
+.global-page-loader.is-error .global-loader-spinner{display:none}.global-page-loader.is-error .global-loader-card{border-color:rgba(230,80,90,.35)}
+@keyframes district-spin{to{transform:rotate(360deg)}}
+.calculator-item select optgroup{color:#aaa;font-weight:900;letter-spacing:.05em}.calculator-item select option{color:#fff;background:#111113;font-weight:600}
