@@ -891,3 +891,5 @@ body {
 
 /* V7.3.1 — prioridade entre os dois baús */
 .field-static-value,.calculator-stock-priority{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:12px;padding:12px 14px;color:#fff}.field-static-value{min-height:44px;display:flex;align-items:center}.calculator-stock-priority{display:flex;flex-direction:column;gap:4px;max-width:330px}.calculator-stock-priority span{color:var(--text-muted);font-size:.78rem;line-height:1.35}
+
+.stock-only-toggle{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap}.stock-only-toggle input{width:18px;height:18px;accent-color:var(--primary);cursor:pointer}@media(max-width:800px){.admin-top-actions{align-items:stretch}.stock-only-toggle{white-space:normal}}

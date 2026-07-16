@@ -248,20 +248,23 @@
 
   async function load() {
     window.DistrictLoader?.show("Carregando receitas e materiais...");
-    const [productsResult, materialsResult, componentsResult, balancesResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
       client.from("products").select("id,name,product_materials(material_id,quantity_required,materials(id,name,unit))").eq("is_active", true).eq("allows_order", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
-      client.from("inventory_balances").select("material_id,quantity,reserved_quantity,inventory_stocks!inner(scope)")
+      client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
+      client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity")
     ]);
     if (productsResult.error) throw productsResult.error;
     if (materialsResult.error) throw materialsResult.error;
     if (componentsResult.error) throw componentsResult.error;
+    if (stocksResult.error) throw stocksResult.error;
     if (balancesResult.error) throw balancesResult.error;
     products = productsResult.data || [];
     materials = materialsResult.data || [];
     components = componentsResult.data || [];
-    balanceRows = balancesResult.data || [];
+    const scopesByStockId = new Map((stocksResult.data || []).map(stock => [stock.id, stock.scope]));
+    balanceRows = (balancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
     selectableItems = [
       ...products.map(item => ({ key: `product:${item.id}` })),
       ...materials.filter(item => isCraftable(item.id)).map(item => ({ key: `material:${item.id}` }))

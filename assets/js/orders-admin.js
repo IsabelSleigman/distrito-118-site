@@ -38,7 +38,7 @@
       geral: new Map(materials.map(item => [item.id, balancesByScope.geral.get(item.id) || 0])),
       gerencia: new Map(materials.map(item => [item.id, balancesByScope.gerencia.get(item.id) || 0]))
     };
-    const direct = new Map(), separate = new Map(), produce = new Map(), missing = new Map();
+    const direct = new Map(), general = new Map(), management = new Map(), produce = new Map(), missing = new Map();
     const add = (map, material, amount, keySuffix = "", displayName = null) => {
       if (!material || amount <= 0) return;
       const key = `${material.id}${keySuffix}`;
@@ -53,7 +53,7 @@
         const used = Math.min(available, remaining);
         if (used > 0) {
           const label = scope === "geral" ? "Estoque Geral" : "Estoque da Gerência";
-          add(separate, material, used, `:${scope}`, `${material.name} · ${label}`);
+          add(scope === "geral" ? general : management, material, used);
           stocks[scope].set(material.id, available - used);
           remaining -= used;
         }
@@ -80,7 +80,7 @@
       }
     }
     const sort = map => [...map.values()].sort((a,b) => a.name.localeCompare(b.name,"pt-BR"));
-    return { direct: sort(direct), separate: sort(separate), produce: sort(produce), missing: sort(missing) };
+    return { direct: sort(direct), general: sort(general), management: sort(management), produce: sort(produce), missing: sort(missing) };
   }
 
   function planList(title, icon, items, emptyText, className = "") {
@@ -119,8 +119,9 @@
         ${order.notes ? `<div class="order-note"><strong>Observação</strong><p>${esc(order.notes)}</p></div>` : ""}
       </div><div><h3 class="timeline-title">Linha do tempo</h3><div class="order-timeline">${history.map((entry,index) => `<div class="timeline-entry ${statusClass(entry.status)} ${index === history.length - 1 ? "current" : ""}"><span class="timeline-dot"></span><div><strong>${esc(statusLabel(entry.status))}</strong><time>${formatDateTime(entry.created_at)}</time>${entry.note ? `<p>${esc(entry.note)}</p>` : ""}</div></div>`).join("") || `<div class="empty">Nenhuma atualização registrada.</div>`}</div></div></div>
       <section class="materials-required-section"><div class="section-head"><div><span class="eyebrow">Plano de produção</span><h3>O que a equipe precisa fazer</h3><p>O cálculo usa o estoque disponível e abre automaticamente as receitas dos materiais intermediários.</p></div></div><div class="production-plan-grid">
-        ${planList("Separar do estoque", "✓", plan.separate, "Nada disponível para separar", "plan-separate")}
-        ${planList("Produzir", "⚙", plan.produce, "Nenhum material intermediário precisa ser produzido", "plan-produce")}
+        ${planList("Estoque Geral", "📦", plan.general, "Nenhum material encontrado no estoque geral", "plan-separate")}
+        ${planList("Estoque Gerência", "📦", plan.management, "Nenhum material encontrado no estoque da gerência", "plan-separate")}
+        ${planList("Produzir", "🔨", plan.produce, "Nenhum material intermediário precisa ser produzido", "plan-produce")}
         ${planList("Ainda falta obter", "!", plan.missing, "Todos os materiais básicos estão disponíveis", "plan-missing")}
       </div></section>`;
 
@@ -129,17 +130,19 @@
   }
 
   async function loadReferences() {
-    const [productsResult, materialsResult, componentsResult, balancesResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
       client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,is_active").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
-      client.from("inventory_balances").select("material_id,quantity,reserved_quantity,inventory_stocks!inner(scope)")
+      client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
+      client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity")
     ]);
     if (productsResult.error) throw productsResult.error;
     orderProducts = productsResult.data || [];
     materials = materialsResult.error ? [] : (materialsResult.data || []);
     materialComponents = componentsResult.error ? [] : (componentsResult.data || []);
-    inventoryBalances = balancesResult.error ? [] : (balancesResult.data || []);
+    const scopesByStockId = new Map((stocksResult.data || []).map(stock => [stock.id, stock.scope]));
+    inventoryBalances = (stocksResult.error || balancesResult.error) ? [] : (balancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
 
   }
 
