@@ -870,3 +870,11 @@ body {
 .calculator-plan-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1200px){.calculator-summary-grid{grid-template-columns:1fr}.calculator-plan-grid{grid-template-columns:1fr 1fr}.plan-missing{grid-column:1/-1}}
 @media(max-width:700px){.calculator-explanation{flex-direction:column}.calculator-explanation strong{white-space:normal}.calculator-plan-grid{grid-template-columns:1fr}.plan-missing{grid-column:auto}}
+
+/* V7.2.6 — estratégia manual para materiais intermediários */
+.calculator-strategy-section{margin:0 0 20px;padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.025)}
+.calculator-strategy-heading{margin-bottom:13px}.calculator-strategy-heading h3{margin:5px 0 4px;font-size:1.05rem}.calculator-strategy-heading p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.55}
+.calculator-strategies{display:grid;gap:9px}.calculator-strategy-row{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px;align-items:end;padding:12px 14px;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#111113}
+.calculator-strategy-info{display:grid;gap:4px}.calculator-strategy-info strong{font-size:.9rem}.calculator-strategy-info span{color:var(--muted);font-size:.76rem}
+.calculator-strategy-field{margin:0}.calculator-strategy-field label{font-size:.67rem}.calculator-strategy-field select{min-height:42px}
+@media(max-width:700px){.calculator-strategy-row{grid-template-columns:1fr;align-items:stretch}.calculator-strategy-field{width:100%}}
