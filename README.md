@@ -124,3 +124,8 @@ Execute `database/008-v7-1-8-pagamento-caixa.sql` no Supabase antes de publicar 
 - Loading global nas páginas públicas e administrativas.
 - Consulta pública remove status consecutivos duplicados.
 - Migration 014 remove o trigger antigo de update e protege o histórico contra duplicações.
+
+## V7.2.5-beta
+- Calculadora reorganizada para distinguir itens escolhidos, materiais intermediários e materiais básicos.
+- Itens repetidos vindos de diferentes receitas são consolidados antes do cálculo.
+- Plano com estoque separado em: separar, produzir e falta obter.

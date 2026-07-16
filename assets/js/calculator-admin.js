@@ -22,20 +22,30 @@
     document.getElementById("calculatorItems").appendChild(row); calculate();
   }
 
-  function add(map, material, quantity) {
-    if (!material || quantity<=0) return;
-    const current=map.get(material.id)||{id:material.id,name:material.name,unit:material.unit||"unidade",quantity:0};
-    current.quantity+=quantity; map.set(material.id,current);
+  function add(map, item, quantity) {
+    if (!item || quantity<=0) return;
+    const current=map.get(item.id)||{id:item.id,name:item.name,unit:item.unit||"unidade",quantity:0};
+    current.quantity+=quantity; map.set(item.id,current);
   }
 
   function buildPlan(items, considerStock) {
     const stock=new Map(materials.map(m=>[m.id,considerStock?Math.max(0,Number(m.stock_quantity||0)-Number(m.reserved_quantity||0)):0]));
-    const direct=new Map(), separate=new Map(), produce=new Map(), missing=new Map();
+    const selected=new Map(), intermediates=new Map(), basicTotal=new Map(), separate=new Map(), produce=new Map(), missing=new Map();
+
+    const expandTotal=(materialId,quantity,stack=[])=>{
+      const material=materialById(materialId); if(!material||quantity<=0)return;
+      if(stack.includes(materialId)){add(basicTotal,material,quantity);return;}
+      const recipe=componentsFor(materialId);
+      if(!recipe.length){add(basicTotal,material,quantity);return;}
+      add(intermediates,material,quantity);
+      recipe.forEach(c=>expandTotal(c.component_material_id,quantity*Number(c.quantity_required||0),[...stack,materialId]));
+    };
 
     const consume=(materialId,quantity,stack=[])=>{
       const material=materialById(materialId); if(!material||quantity<=0)return;
       if(stack.includes(materialId)){add(missing,material,quantity);return;}
-      const available=stock.get(materialId)||0, fromStock=Math.min(available,quantity);
+      const available=stock.get(materialId)||0;
+      const fromStock=Math.min(available,quantity);
       if(fromStock>0){add(separate,material,fromStock);stock.set(materialId,available-fromStock);}
       const remaining=quantity-fromStock; if(remaining<=0)return;
       const recipe=componentsFor(materialId);
@@ -44,33 +54,30 @@
       recipe.forEach(c=>consume(c.component_material_id,remaining*Number(c.quantity_required||0),[...stack,materialId]));
     };
 
-    const craftMaterial=(materialId, quantity)=>{
-      const material=materialById(materialId); if(!material) return;
-      const recipe=componentsFor(materialId);
-      if(!recipe.length){add(missing,material,quantity);return;}
-      add(produce,material,quantity);
-      recipe.forEach(component=>{
-        const componentMaterial=materialById(component.component_material_id);
-        const required=quantity*Number(component.quantity_required||0);
-        add(direct,componentMaterial,required);
-        consume(component.component_material_id,required,[materialId]);
-      });
-    };
-
     items.forEach(item=>{
+      const selectedItem=item.type==="product"?products.find(p=>p.id===item.id):materialById(item.id);
+      if(selectedItem){
+        const selectedKey=`${item.type}:${item.id}`;
+        const current=selected.get(selectedKey)||{id:selectedKey,name:selectedItem.name,unit:"unidade",quantity:0,type:item.type};
+        current.quantity+=item.quantity; selected.set(selectedKey,current);
+      }
+
       if(item.type === "product") {
         const product=products.find(p=>p.id===item.id);
         (product?.product_materials||[]).forEach(recipe=>{
           const material=materialById(recipe.material_id)||recipe.materials;
           const qty=item.quantity*Number(recipe.quantity_required||0);
-          add(direct,material,qty); consume(material.id,qty);
+          expandTotal(material.id,qty);
+          consume(material.id,qty);
         });
       } else if(item.type === "material") {
-        craftMaterial(item.id,item.quantity);
+        expandTotal(item.id,item.quantity);
+        consume(item.id,item.quantity);
       }
     });
+
     const sort=map=>[...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
-    return {direct:sort(direct),separate:sort(separate),produce:sort(produce),missing:sort(missing)};
+    return {selected:sort(selected),intermediates:sort(intermediates),basicTotal:sort(basicTotal),separate:sort(separate),produce:sort(produce),missing:sort(missing)};
   }
 
   function renderList(id,items,empty) {
@@ -86,8 +93,10 @@
     if(!items.length){empty.hidden=false;planBox.hidden=true;return;}
     const consider=document.getElementById("considerStock").checked, plan=buildPlan(items,consider);
     empty.hidden=true;planBox.hidden=false;
-    document.getElementById("calculatorResultHint").textContent=consider?"O cálculo considera o estoque disponível.":"O cálculo mostra tudo necessário do zero, sem descontar estoque.";
-    renderList("calculatorDirect",plan.direct,"Nenhum material cadastrado nas receitas selecionadas.");
+    document.getElementById("calculatorResultHint").textContent=consider?"O sistema soma todos os itens escolhidos e desconta o estoque apenas uma vez.":"O sistema soma todos os itens escolhidos e calcula tudo do zero, sem descontar estoque.";
+    renderList("calculatorSelected",plan.selected,"Nenhum item selecionado.");
+    renderList("calculatorIntermediates",plan.intermediates,"Nenhum material intermediário faz parte deste cálculo.");
+    renderList("calculatorBasicTotal",plan.basicTotal,"Nenhum material básico encontrado nas receitas.");
     renderList("calculatorSeparate",plan.separate,consider?"Nada disponível para separar.":"Modo sem estoque.");
     renderList("calculatorProduce",plan.produce,"Nenhum material intermediário precisa ser produzido.");
     renderList("calculatorMissing",plan.missing,consider?"Nada falta obter.":"Materiais básicos necessários do zero.");
