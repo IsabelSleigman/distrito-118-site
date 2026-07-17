@@ -148,11 +148,11 @@
 
   const internalProductOptions = () => orderProducts.map(product => `<option value="${product.id}">${esc(product.name)}</option>`).join("");
 
-  function addInternalItem(productId = orderProducts[0]?.id) {
+  function addInternalItem(productId = orderProducts[0]?.id, quantity = 1) {
     if (!productId) return;
     const row = document.createElement("div");
     row.className = "order-item internal-order-item";
-    row.innerHTML = `<div class="field"><label>Produto</label><select class="internal-order-product">${internalProductOptions()}</select></div><div class="field quantity-field"><label>Quantidade</label><input class="internal-order-qty" type="number" min="1" value="1"></div><button type="button" class="icon-btn danger remove-internal-item" aria-label="Remover produto">×</button>`;
+    row.innerHTML = `<div class="field"><label>Produto</label><select class="internal-order-product">${internalProductOptions()}</select></div><div class="field quantity-field"><label>Quantidade</label><input class="internal-order-qty" type="number" min="1" value="${Math.max(1, Number(quantity || 1))}"></div><button type="button" class="icon-btn danger remove-internal-item" aria-label="Remover produto">×</button>`;
     row.querySelector("select").value = productId;
     row.querySelectorAll("select,input").forEach(element => element.addEventListener("input", updateInternalTotals));
     row.querySelector(".remove-internal-item").addEventListener("click", () => { row.remove(); updateInternalTotals(); });
@@ -297,7 +297,7 @@
   document.getElementById("closeOrderDetails")?.addEventListener("click", () => document.getElementById("orderDetailsModal").classList.remove("open"));
   document.getElementById("closeInternalOrder")?.addEventListener("click", closeInternalOrder);
   document.getElementById("cancelInternalOrder")?.addEventListener("click", closeInternalOrder);
-  document.getElementById("newInternalOrderButton")?.addEventListener("click", openInternalOrder);
+  document.getElementById("newInternalOrderButton")?.addEventListener("click", () => openInternalOrder());
   document.getElementById("addInternalOrderItem")?.addEventListener("click", () => addInternalItem());
   document.getElementById("internalOrderForm")?.addEventListener("submit", saveInternalOrder);
   document.getElementById("internalCustomerType")?.addEventListener("change", event => {
