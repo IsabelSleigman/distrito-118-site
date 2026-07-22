@@ -49,7 +49,7 @@ function currentAdminSection() {
 function applyDistrictPermissions(user) {
   const isAdmin = isDistrictAdmin(user);
   const isManager = isDistrictManager(user);
-  const allowedForManager = new Set(["admin", "index", "encomendas", "calculadora", "caixa"]);
+  const allowedForManager = new Set(["admin", "index", "encomendas", "metas", "calculadora", "caixa"]);
   const section = currentAdminSection();
 
   document.querySelectorAll('[data-admin-only="true"]').forEach((element) => {
