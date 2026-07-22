@@ -110,7 +110,8 @@
         <div class="summary-row"><span>Passaporte</span><strong>${esc(order.passport || "—")}</strong></div>
         <div class="summary-row"><span>Telefone</span><strong>${esc(order.phone || "—")}</strong></div>
         ${(order.order_items || []).map(item => `<div class="summary-row"><span>${item.quantity}x ${esc(item.product_name)}</span><strong>${money(item.subtotal)}</strong></div>`).join("")}
-        <div class="summary-row"><span>Pagamento</span><strong>${order.payment_type === "dirty" ? "Dinheiro sujo" : "Dinheiro limpo"}</strong></div>
+        <div class="summary-row payment-edit-row"><span>Pagamento</span><div class="payment-edit-control"><select id="detailPaymentType" data-original="${esc(order.payment_type || "clean")}"><option value="clean" ${order.payment_type !== "dirty" ? "selected" : ""}>Dinheiro limpo</option><option value="dirty" ${order.payment_type === "dirty" ? "selected" : ""}>Dinheiro sujo (+30%)</option></select><button id="savePaymentType" class="btn ghost small" type="button" data-order-id="${esc(order.id)}">Alterar</button></div></div>
+        ${order.vault_deposited_at ? `<div class="finance-warning"><strong>Valor já estava marcado como depositado no baú.</strong><p>Se o pagamento for alterado, o depósito será reaberto como pendente para conferência.</p></div>` : ""}
         <div class="summary-row"><span>Valor limpo</span><strong>${money(order.clean_amount ?? order.total_amount)}</strong></div>
         <div class="summary-row"><span>Valor sujo (+30%)</span><strong>${money(order.dirty_amount ?? Number(order.total_amount || 0) * 1.3)}</strong></div>
         <div class="summary-row"><span>Comissão (20%)</span><strong>${money(order.commission_amount)}</strong></div>
@@ -255,7 +256,7 @@
     const tbody = document.getElementById("ordersTable");
     tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Carregando encomendas...</td></tr>`;
     const { data, error } = await client.from("orders").select(`
-      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,status,created_at,deleted_at,production_helpers,
+      id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,cash_posted_at,vault_deposited_at,vault_deposited_by,status,created_at,deleted_at,production_helpers,
       received_by_profile:profiles!orders_received_by_fkey(name,email),
       order_items(quantity,product_name,unit_price,subtotal,product_id,products(product_materials(material_id,quantity_required,materials(id,name,unit)))),
       order_status_history(status,note,created_at)
@@ -286,6 +287,36 @@
   }
 
   document.getElementById("orderDetailsModal")?.addEventListener("click", async event => {
+    const paymentButton = event.target.closest("#savePaymentType");
+    if (paymentButton) {
+      const select = document.getElementById("detailPaymentType");
+      const nextType = select.value;
+      const previousType = select.dataset.original;
+      if (nextType === previousType) return toast("A forma de pagamento já está selecionada.");
+      const label = nextType === "dirty" ? "dinheiro sujo" : "dinheiro limpo";
+      if (!confirm(`Alterar a forma de pagamento para ${label}? O caixa será recalculado automaticamente.`)) {
+        select.value = previousType;
+        return;
+      }
+      paymentButton.disabled = true;
+      paymentButton.textContent = "Salvando...";
+      try {
+        const { data, error } = await client.rpc("update_order_payment_type", { p_order_id: paymentButton.dataset.orderId, p_payment_type: nextType });
+        if (error) throw error;
+        toast(data?.vault_reopened ? "Pagamento alterado. O depósito no baú voltou para pendente." : "Forma de pagamento alterada e caixa recalculado.");
+        document.getElementById("orderDetailsModal").classList.remove("open");
+        await load();
+      } catch (error) {
+        console.error(error);
+        select.value = previousType;
+        toast(error.message || "Não foi possível alterar a forma de pagamento.");
+      } finally {
+        paymentButton.disabled = false;
+        paymentButton.textContent = "Alterar";
+      }
+      return;
+    }
+
     const button = event.target.closest("#saveOrderStatus"); if (!button) return;
     const manager = button.closest(".status-manager"); const errorBox = document.getElementById("statusUpdateError");
     button.disabled = true; button.textContent = "Salvando..."; errorBox.hidden = true;
