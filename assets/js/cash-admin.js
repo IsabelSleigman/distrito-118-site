@@ -162,6 +162,19 @@
       updateSelectionSummary();
     });
     document.getElementById("depositSelectedButton")?.addEventListener("click", () => deposit(selectedPendingIds()));
+
+    document.getElementById("vaultPendingTable")?.addEventListener("change", event => {
+      if (event.target.matches(".vault-order-check")) updateSelectionSummary();
+    });
+    document.getElementById("vaultPendingTable")?.addEventListener("click", event => {
+      const button = event.target.closest(".deposit-one");
+      if (button) deposit([button.dataset.id]);
+    });
+    document.getElementById("selectAllVault")?.addEventListener("change", event => {
+      document.querySelectorAll(".vault-order-check").forEach(input => { input.checked = event.target.checked; });
+      updateSelectionSummary();
+    });
+    document.getElementById("depositSelectedButton")?.addEventListener("click", () => deposit(selectedPendingIds()));
   }
 
   document.addEventListener("district-auth-ready", async () => { bindForm(); await loadCash(); }, { once: true });
