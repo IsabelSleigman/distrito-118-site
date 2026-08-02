@@ -52,7 +52,9 @@
       if (!recipe.length) { add(basicTotal, material, quantity); return; }
       add(intermediatesTotal, material, quantity);
       if (!isRootDirect) add(dependencies, material, quantity);
-      recipe.forEach(component => expandFromZero(component.component_material_id, quantity * Number(component.quantity_required || 0), [...stack, materialId], false));
+      const outputQuantity = Math.max(0.000001, Number(material.output_quantity || 1));
+      const batches = Math.ceil((quantity / outputQuantity) - 1e-9);
+      recipe.forEach(component => expandFromZero(component.component_material_id, batches * Number(component.quantity_required || 0), [...stack, materialId], false));
     };
 
     items.forEach(item => {
@@ -65,13 +67,19 @@
 
       if (item.type === "product") {
         const product = products.find(productItem => productItem.id === item.id);
+        const outputQuantity = Math.max(0.000001, Number(product?.output_quantity || 1));
+        const batches = Math.ceil((item.quantity / outputQuantity) - 1e-9);
+        const producedQuantity = batches * outputQuantity;
+        add(directMaterials, { ...product, unit: "unidade" }, producedQuantity);
         (product?.product_materials || []).forEach(recipe => {
           const material = materialById(recipe.material_id) || recipe.materials;
-          expandFromZero(material.id, item.quantity * Number(recipe.quantity_required || 0), [], false);
+          expandFromZero(material.id, batches * Number(recipe.quantity_required || 0), [], false);
         });
       } else {
         const material = materialById(item.id);
-        add(directMaterials, material, item.quantity);
+        const outputQuantity = Math.max(0.000001, Number(material?.output_quantity || 1));
+        const batches = Math.ceil((item.quantity / outputQuantity) - 1e-9);
+        add(directMaterials, material, batches * outputQuantity);
         expandFromZero(item.id, item.quantity, [], true);
       }
     });
@@ -149,14 +157,19 @@
       }
 
       if (quantityToProduce <= 0) return;
-      add(produce, material, quantityToProduce);
-      recipe.forEach(component => processMaterial(component.component_material_id, quantityToProduce * Number(component.quantity_required || 0), { direct: false, stack: [...stack, materialId] }));
+      const outputQuantity = Math.max(0.000001, Number(material.output_quantity || 1));
+      const batches = Math.ceil((quantityToProduce / outputQuantity) - 1e-9);
+      add(produce, material, batches * outputQuantity);
+      recipe.forEach(component => processMaterial(component.component_material_id, batches * Number(component.quantity_required || 0), { direct: false, stack: [...stack, materialId] }));
     };
 
     items.forEach(item => {
       if (item.type === "product") {
         const product = products.find(productItem => productItem.id === item.id);
-        (product?.product_materials || []).forEach(recipe => processMaterial(recipe.material_id, item.quantity * Number(recipe.quantity_required || 0), { direct: false, stack: [] }));
+        const outputQuantity = Math.max(0.000001, Number(product?.output_quantity || 1));
+        const batches = Math.ceil((item.quantity / outputQuantity) - 1e-9);
+        add(produce, { ...product, unit: "unidade" }, batches * outputQuantity);
+        (product?.product_materials || []).forEach(recipe => processMaterial(recipe.material_id, batches * Number(recipe.quantity_required || 0), { direct: false, stack: [] }));
       } else {
         processMaterial(item.id, item.quantity, { direct: true, stack: [] });
       }
@@ -238,7 +251,7 @@
       : "Itens escolhidos diretamente são produzidos. Sem estoque, dependências em automático são produzidas e dependências em “usar pronta” ficam pendentes.";
 
     renderList("calculatorSelected", overview.selected, "Nenhum item selecionado.");
-    renderList("calculatorDirectMaterials", overview.directMaterials, "Nenhum material foi escolhido diretamente.");
+    renderList("calculatorDirectMaterials", overview.directMaterials, "Nenhum item com produção direta.");
     renderList("calculatorDependencies", overview.dependencies, "Os produtos escolhidos não possuem materiais intermediários.");
     renderList("calculatorBasicTotal", overview.basicTotal, "Nenhum material básico encontrado nas receitas.");
     renderList("calculatorSeparate", plan.separate, consider ? "Nada disponível ou marcado para separar." : "Modo sem estoque.");
@@ -249,8 +262,8 @@
   async function load() {
     window.DistrictLoader?.show("Carregando receitas e materiais...");
     const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
-      client.from("products").select("id,name,product_materials(material_id,quantity_required,materials(id,name,unit))").eq("is_active", true).eq("allows_order", true).order("name"),
-      client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity").eq("is_active", true).order("name"),
+      client.from("products").select("id,name,output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit))").eq("is_active", true).eq("allows_order", true).order("name"),
+      client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,output_quantity").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
       client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
       client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity")

@@ -1,0 +1,25 @@
+DISTRITO 118 — v7.5.3
+
+Esta versão adiciona:
+- rendimento por fabricação nos materiais produzíveis;
+- padrão 1 para todos os materiais já existentes;
+- cálculo de receitas por quantidade de fabricações;
+- registro automático de sobra no Estoque Geral;
+- botão "Dar baixa e iniciar produção" na encomenda;
+- baixa idempotente: uma encomenda não desconta materiais duas vezes;
+- prioridade Estoque Geral e depois Estoque da Gerência;
+- remoção da baixa automática ao marcar como Pronta.
+
+ORDEM DE ATUALIZAÇÃO
+1. Faça backup do Supabase.
+2. Execute database/026-v7-5-3-rendimento-e-baixa-producao.sql no SQL Editor.
+3. Publique os arquivos do site.
+4. Em Materiais, edite apenas as receitas cujo rendimento é diferente de 1.
+
+EXEMPLO
+Metanfetamina:
+- Quantidade produzida por fabricação: 5
+- Soro: 1 por fabricação
+- Ácido: 1 por fabricação
+
+Tudo que já estava cadastrado permanece com rendimento 1.

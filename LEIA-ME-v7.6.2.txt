@@ -1,0 +1,14 @@
+DISTRITO 118 SITE v7.6.2
+
+Correção:
+- Corrige erro 400 ao confirmar "Dar baixa e iniciar produção".
+- O banco agora aceita o evento order_inventory_consumed na integration_outbox.
+- Como a operação é transacional, a falha anterior não alterou estoque, status ou histórico parcialmente.
+
+Atualização:
+1. Faça backup do Supabase.
+2. Execute database/030-v7-6-2-corrige-evento-producao-outbox.sql.
+3. Publique o site.
+4. Atualize a página com Ctrl + F5.
+
+Não é necessário atualizar o bot se ele já está na v5.3.0.

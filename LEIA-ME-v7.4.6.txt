@@ -1,0 +1,33 @@
+DISTRITO 118 — V7.4.6 BETA
+
+ORDEM DE ATUALIZAÇÃO
+
+1. No Supabase SQL Editor, execute:
+   database/024-v7-4-6-caixa-estoque-idempotencia.sql
+
+2. Publique o site atualizado.
+
+3. Substitua o bot.py pelo arquivo atualizado e reinicie o bot.
+
+O QUE FOI CORRIGIDO NESTA ETAPA
+
+- O Dashboard soma o estoque Geral e o estoque da Gerência ao verificar materiais baixos.
+- Placa Blindada existente no Geral não será mais mostrada como zero no Dashboard.
+- O Caixa reconhece o material cadastrado exatamente como "Dinheiro".
+- Dinheiro e Dinheiro Sujo dos dois baús passam a compor o saldo financeiro.
+- A tela do Caixa mostra separadamente os valores do Geral e da Gerência.
+- A movimentação avulsa agora exige:
+  Tipo (entrada/saída), Dinheiro, Baú, Valor e Descrição.
+- Entrada ou saída manual atualiza o saldo físico do baú e o histórico do Caixa na mesma transação.
+- Saída com saldo insuficiente é bloqueada.
+- A fila de NOVA ENCOMENDA passa a ser capturada antes do envio ao Discord.
+- O bot não processa mais order_created também pela integration_outbox, eliminando a segunda fonte da notificação duplicada.
+- Listeners duplicados da tela do Caixa foram removidos.
+
+IMPORTANTE
+
+Não altere os nomes dos materiais. Eles continuam sendo:
+- Dinheiro
+- Dinheiro Sujo
+
+Esta versão não recalcula saldos antigos. Ela passa a ler os saldos físicos atuais de inventory_balances nos dois baús.

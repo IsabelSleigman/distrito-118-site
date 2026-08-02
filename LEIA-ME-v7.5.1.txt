@@ -1,0 +1,11 @@
+DISTRITO 118 - v7.5.1-beta
+
+Correções do Dashboard:
+- O card agora mostra somente o saldo físico nos baús Geral e Gerência.
+- Valores de encomendas aguardando depósito não entram nesse card.
+- Materiais com estoque mínimo igual a zero não aparecem como estoque baixo.
+- Um material só aparece como baixo quando estoque mínimo > 0 e disponível < mínimo.
+
+Publicação:
+- Substitua os arquivos do site pela versão deste pacote.
+- Não há script SQL novo nesta correção.

@@ -1,0 +1,12 @@
+DISTRITO 118 SITE v7.5.5 — RENDIMENTO DE PRODUTOS E CALCULADORA
+
+1. Faça backup do Supabase.
+2. Execute no SQL Editor:
+   database/028-v7-5-5-rendimento-produtos-calculadora.sql
+3. Publique todos os arquivos do site.
+4. Abra Produtos e edite apenas os produtos cujo craft rende mais de 1 unidade.
+   Os produtos antigos continuam com rendimento 1 por padrão.
+5. Atualize o navegador com Ctrl+F5.
+
+A calculadora agora calcula fabricações tanto para materiais produzíveis quanto para produtos.
+Exemplo: produto rende 5, pedido 100 => 20 fabricações e a receita é multiplicada por 20.

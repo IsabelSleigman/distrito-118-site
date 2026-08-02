@@ -1,0 +1,12 @@
+DISTRITO 118 - SITE v7.5.2
+
+Melhoria adicionada no Caixa e Baú:
+- mostra quantos pedidos foram selecionados para depósito;
+- soma separadamente Dinheiro e Dinheiro Sujo;
+- mostra o total geral selecionado;
+- recalcula automaticamente ao marcar ou desmarcar pedidos;
+- pede confirmação exibindo os mesmos valores antes de concluir;
+- funciona também no botão individual Depositar.
+
+Não há SQL novo nesta versão.
+Publique os arquivos do site normalmente.

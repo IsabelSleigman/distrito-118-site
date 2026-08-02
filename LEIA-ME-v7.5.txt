@@ -1,0 +1,22 @@
+DISTRITO 118 — V7.5 ESTABILIZAÇÃO
+
+ORDEM DE ATUALIZAÇÃO
+1. Faça backup do banco/Supabase.
+2. Caso ainda não tenha executado, rode database/024-v7-4-6-caixa-estoque-idempotencia.sql.
+3. Rode database/025-v7-5-estabilizacao-integracoes.sql.
+4. Publique o site.
+5. Atualize o bot e reinicie o processo.
+6. No Discord, execute /atualizar_contabilidade para atualizar imediatamente o painel.
+
+O QUE ESTA VERSÃO CORRIGE
+- Dashboard e Caixa usam inventory_balances dos baús Geral e Gerência.
+- Dinheiro e Dinheiro Sujo do Baú Geral passam a compor o total financeiro.
+- A Gerência mantém a lógica já existente; nenhum saldo atual é recriado.
+- O painel de contabilidade do Discord passa a mostrar os mesmos dados da página Caixa e Baú.
+- Remove eventos pendentes duplicados de NOVA ENCOMENDA e cria proteção única por encomenda.
+- A outbox deixa de enviar NOVA ENCOMENDA, evitando duas fontes para a mesma notificação.
+
+IMPORTANTE
+- Os scripts 024 e 025 não recalculam nem somam novamente os saldos atuais.
+- O valor da Gerência permanece o que já está salvo em inventory_balances.
+- O total passa apenas a incluir também Dinheiro/Dinheiro Sujo existentes no Geral.

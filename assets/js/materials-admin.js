@@ -13,7 +13,7 @@
   function addComponentRow(component = null) {
     const row = document.createElement("div");
     row.className = "recipe-row material-component-row";
-    row.innerHTML = `<div class="field"><label>Componente</label><select class="component-material">${componentOptions(component?.component_material_id || "", $("materialId").value)}</select></div><div class="field"><label>Quantidade por unidade</label><input class="component-quantity" type="number" min="0.01" step="0.01" value="${component?.quantity_required ?? 1}"></div><button type="button" class="icon-btn danger remove-component">Remover</button>`;
+    row.innerHTML = `<div class="field"><label>Componente</label><select class="component-material">${componentOptions(component?.component_material_id || "", $("materialId").value)}</select></div><div class="field"><label>Quantidade por fabricação</label><input class="component-quantity" type="number" min="0.01" step="0.01" value="${component?.quantity_required ?? 1}"></div><button type="button" class="icon-btn danger remove-component">Remover</button>`;
     row.querySelector(".remove-component").onclick = () => row.remove();
     $("materialComponentRows").appendChild(row);
   }
@@ -31,6 +31,7 @@
     $("materialMinimum").value = material?.minimum_stock ?? 0; $("materialIsActive").checked = material?.is_active ?? true;
     const recipe = material?.material_components || [];
     $("materialIsProducible").checked = recipe.length > 0;
+    $("materialOutputQuantity").value = material?.output_quantity ?? 1;
     recipe.forEach(addComponentRow); toggleRecipe();
     $("materialModal").classList.add("open");
   }
@@ -56,7 +57,7 @@
     $("materialsTable").innerHTML = materials.map(m => {
       const available = num(m.stock_quantity) - num(m.reserved_quantity);
       const recipe = m.material_components || [];
-      return `<tr><td><strong>${esc(m.name)}</strong><div class="muted-caption">${esc(m.description || "")}</div></td><td>${esc(m.unit)}</td><td>${m.stock_quantity}</td><td>${m.reserved_quantity}</td><td>${available}</td><td>${m.minimum_stock}</td><td>${recipe.length ? `<span class="badge status-in_production">Produzível · ${recipe.length}</span><div class="muted-caption">${recipe.map(r => esc(r.component?.name)).join(", ")}</div>` : `<span class="badge neutral">Básico</span>`}</td><td><span class="badge ${!m.is_active ? "red" : available <= num(m.minimum_stock) ? "yellow" : "green"}">${!m.is_active ? "Inativo" : available <= num(m.minimum_stock) ? "Estoque baixo" : "Normal"}</span></td><td><div class="table-actions"><button class="icon-btn edit" data-id="${m.id}">Editar</button><button class="icon-btn danger remove" data-id="${m.id}">Excluir</button></div></td></tr>`;
+      return `<tr><td><strong>${esc(m.name)}</strong><div class="muted-caption">${esc(m.description || "")}</div></td><td>${esc(m.unit)}</td><td>${m.stock_quantity}</td><td>${m.reserved_quantity}</td><td>${available}</td><td>${m.minimum_stock}</td><td>${recipe.length ? `<span class="badge status-in_production">Produzível · rende ${num(m.output_quantity || 1)}</span><div class="muted-caption">${recipe.map(r => esc(r.component?.name)).join(", ")}</div>` : `<span class="badge neutral">Básico</span>`}</td><td><span class="badge ${!m.is_active ? "red" : available <= num(m.minimum_stock) ? "yellow" : "green"}">${!m.is_active ? "Inativo" : available <= num(m.minimum_stock) ? "Estoque baixo" : "Normal"}</span></td><td><div class="table-actions"><button class="icon-btn edit" data-id="${m.id}">Editar</button><button class="icon-btn danger remove" data-id="${m.id}">Excluir</button></div></td></tr>`;
     }).join("") || `<tr><td colspan="9" class="empty">Nenhum material cadastrado.</td></tr>`;
     document.querySelectorAll(".edit").forEach(button => button.onclick = () => openModal(materials.find(m => m.id === button.dataset.id)));
     document.querySelectorAll(".remove").forEach(button => button.onclick = () => removeMaterial(button.dataset.id));
@@ -65,7 +66,9 @@
     event.preventDefault(); clearError();
     try {
       const id = $("materialId").value;
-      const payload = { name: $("materialName").value.trim(), unit: $("materialUnit").value.trim(), description: $("materialDescription").value.trim() || null, stock_quantity: num($("materialStock").value), minimum_stock: num($("materialMinimum").value), is_active: $("materialIsActive").checked };
+      const outputQuantity = $("materialIsProducible").checked ? num($("materialOutputQuantity").value) : 1;
+      if (outputQuantity <= 0) throw new Error("A quantidade produzida deve ser maior que zero.");
+      const payload = { name: $("materialName").value.trim(), unit: $("materialUnit").value.trim(), description: $("materialDescription").value.trim() || null, stock_quantity: num($("materialStock").value), minimum_stock: num($("materialMinimum").value), output_quantity: outputQuantity, is_active: $("materialIsActive").checked };
       const query = id ? client.from("materials").update(payload).eq("id", id) : client.from("materials").insert({ ...payload, created_by: window.currentDistrictUser?.id || null });
       const { data, error } = await query.select("id").single();
       if (error) throw error;

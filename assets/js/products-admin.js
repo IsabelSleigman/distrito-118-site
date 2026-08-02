@@ -33,7 +33,7 @@
     clearError();$("productForm").reset();$("recipeRows").innerHTML="";
     $("productId").value=product?.id||"";$("productModalTitle").textContent=product?"Editar produto":"Novo produto";
     $("productName").value=product?.name||"";$("productCategory").value=product?.product_categories?.name||"";
-    $("productDescription").value=product?.description||"";$("productImageUrl").value=product?.image_url||"";
+    $("productDescription").value=product?.description||"";$("productImageUrl").value=product?.image_url||"";$("productOutputQuantity").value=product?.output_quantity??1;
     $("productIsActive").checked=product?.is_active??true;$("productIsPublic").checked=product?.is_public??true;$("productAllowsOrder").checked=product?.allows_order??true;
     TIERS.forEach(t=>fillTier(product,t));
     (product?.product_materials||[]).forEach(r=>addRecipeRow(r));
@@ -53,7 +53,7 @@
   async function loadProducts(){
     const tbody=$("productsTable");tbody.innerHTML=`<tr><td colspan="8" class="loading-row">Carregando produtos...</td></tr>`;
     const {data,error}=await client.from("products").select(`
-      id,name,description,image_url,is_active,is_public,allows_order,category_id,
+      id,name,description,image_url,output_quantity,is_active,is_public,allows_order,category_id,
       product_categories(name),
       product_prices(id,customer_type,unit_price,wholesale_minimum,wholesale_price),
       product_materials(id,material_id,quantity_required,materials(name))
@@ -70,7 +70,7 @@
     tbody.innerHTML=products.map(p=>{
       const src=imageSrc(p.image_url);
       const image=src?`<img class="product-thumb" src="${esc(src)}" alt="${esc(p.name)}">`:`<div class="product-thumb-placeholder">${esc(p.name[0])}</div>`;
-      return `<tr><td><div class="product-name-cell">${image}<div><strong>${esc(p.name)}</strong><div class="muted-caption">${p.product_materials?.length||0} material(is) na receita</div></div></div></td><td>${esc(p.product_categories?.name||"Sem categoria")}</td><td>${displayPrice(p,"cpf")}</td><td>${displayPrice(p,"cnpj")}</td><td>${displayPrice(p,"alianca")}</td><td>${displayPrice(p,"parceria")}</td><td><span class="badge ${p.is_active?"green":"red"}">${p.is_active?"Ativo":"Inativo"}</span></td><td><div class="table-actions"><button class="icon-btn edit" data-id="${p.id}">Editar</button><button class="icon-btn danger delete" data-id="${p.id}">Excluir</button></div></td></tr>`;
+      return `<tr><td><div class="product-name-cell">${image}<div><strong>${esc(p.name)}</strong><div class="muted-caption">${p.product_materials?.length||0} material(is) · rende ${Number(p.output_quantity||1).toLocaleString("pt-BR",{maximumFractionDigits:2})}</div></div></div></td><td>${esc(p.product_categories?.name||"Sem categoria")}</td><td>${displayPrice(p,"cpf")}</td><td>${displayPrice(p,"cnpj")}</td><td>${displayPrice(p,"alianca")}</td><td>${displayPrice(p,"parceria")}</td><td><span class="badge ${p.is_active?"green":"red"}">${p.is_active?"Ativo":"Inativo"}</span></td><td><div class="table-actions"><button class="icon-btn edit" data-id="${p.id}">Editar</button><button class="icon-btn danger delete" data-id="${p.id}">Excluir</button></div></td></tr>`;
     }).join("")||`<tr><td colspan="8" class="empty">Nenhum produto cadastrado.</td></tr>`;
     document.querySelectorAll(".edit").forEach(b=>b.onclick=()=>openModal(products.find(p=>p.id===b.dataset.id)));
     document.querySelectorAll(".delete").forEach(b=>b.onclick=()=>softDelete(b.dataset.id));
@@ -88,7 +88,7 @@
     event.preventDefault();clearError();setSaving(true);
     try{
       const id=$("productId").value||null;TIERS.forEach(t=>validateWholesale($(`${t}WholesaleMinimum`).value,$(`${t}WholesalePrice`).value,window.DistrictPricing.label(t)));
-      const payload={category_id:await categoryId($("productCategory").value),name:$("productName").value.trim(),description:$("productDescription").value.trim()||null,image_url:$("productImageUrl").value.trim()||null,is_active:$("productIsActive").checked,is_public:$("productIsPublic").checked,allows_order:$("productAllowsOrder").checked};
+      const payload={category_id:await categoryId($("productCategory").value),name:$("productName").value.trim(),description:$("productDescription").value.trim()||null,image_url:$("productImageUrl").value.trim()||null,output_quantity:Number($("productOutputQuantity").value||1),is_active:$("productIsActive").checked,is_public:$("productIsPublic").checked,allows_order:$("productAllowsOrder").checked};
       if(!id)payload.created_by=window.currentDistrictUser?.id||null;
       const {data,error}=await (id?client.from("products").update(payload).eq("id",id):client.from("products").insert(payload)).select("id").single();if(error)throw error;
       const prices=TIERS.map(t=>({product_id:data.id,customer_type:t,unit_price:Number($(`${t}UnitPrice`).value||0),wholesale_minimum:nnull($(`${t}WholesaleMinimum`).value),wholesale_price:nnull($(`${t}WholesalePrice`).value)}));

@@ -68,14 +68,19 @@
       if (remaining <= 0) return;
       const recipe = componentsFor(materialId);
       if (!recipe.length) { add(missing, material, remaining); return; }
-      add(produce, material, remaining);
-      recipe.forEach(component => consume(component.component_material_id, remaining * Number(component.quantity_required || 0), [...stack, materialId]));
+      const outputQuantity = Math.max(0.000001, Number(material.output_quantity || 1));
+      const batches = Math.ceil((remaining / outputQuantity) - 1e-9);
+      const producedQuantity = batches * outputQuantity;
+      add(produce, material, producedQuantity);
+      recipe.forEach(component => consume(component.component_material_id, batches * Number(component.quantity_required || 0), [...stack, materialId]));
     };
     for (const item of order.order_items || []) {
       for (const recipe of item.products?.product_materials || []) {
         const material = materialById(recipe.material_id) || recipe.materials;
         if (!material) continue;
-        const quantity = Number(item.quantity || 0) * Number(recipe.quantity_required || 0);
+        const productOutputQuantity = Math.max(0.000001, Number(item.products?.output_quantity || 1));
+        const batches = Math.ceil((Number(item.quantity || 0) / productOutputQuantity) - 1e-9);
+        const quantity = batches * Number(recipe.quantity_required || 0);
         add(direct, material, quantity); consume(material.id, quantity);
       }
     }
@@ -85,6 +90,40 @@
 
   function planList(title, icon, items, emptyText, className = "") {
     return `<section class="production-plan-block ${className}"><div class="production-plan-title"><span>${icon}</span><div><h4>${title}</h4><p>${items.length ? `${items.length} item(ns)` : emptyText}</p></div></div>${items.length ? `<div class="production-plan-list">${items.map(item => `<div><span>${esc(item.name)}</span><strong>${item.quantity} ${esc(item.unit)}</strong></div>`).join("")}</div>` : ""}</section>`;
+  }
+
+
+  function requestProductionResponsible(orderCode) {
+    return new Promise(resolve => {
+      const overlay = document.createElement("div");
+      overlay.className = "modal-backdrop open production-confirm-backdrop";
+      overlay.innerHTML = `<div class="modal-card production-confirm-card" role="dialog" aria-modal="true" aria-labelledby="productionConfirmTitle">
+        <button class="modal-close production-confirm-close" type="button" aria-label="Fechar">×</button>
+        <span class="eyebrow">Confirmação de estoque</span>
+        <h2 id="productionConfirmTitle">Dar baixa e iniciar produção</h2>
+        <p class="production-confirm-copy">Encomenda <strong>${esc(orderCode)}</strong>. Informe seu nome RP para confirmar a retirada dos materiais.</p>
+        <div class="field"><label for="productionResponsibleName">Responsável pela baixa</label><input id="productionResponsibleName" maxlength="120" autocomplete="off" placeholder="Ex.: Maria Grachev"><small class="field-help">O nome ficará registrado na encomenda e nos logs do Discord.</small></div>
+        <label class="production-confirm-check"><input id="productionConfirmChecked" type="checkbox"><span>Conferi os materiais e confirmo o início da produção.</span></label>
+        <p class="status-update-error production-confirm-error" hidden></p>
+        <div class="production-confirm-actions"><button class="btn ghost production-confirm-cancel" type="button">Cancelar</button><button class="btn primary production-confirm-submit" type="button">Dar baixa e iniciar produção</button></div>
+      </div>`;
+      document.body.appendChild(overlay);
+      const input = overlay.querySelector("#productionResponsibleName");
+      const check = overlay.querySelector("#productionConfirmChecked");
+      const error = overlay.querySelector(".production-confirm-error");
+      const close = value => { overlay.remove(); resolve(value); };
+      overlay.querySelector(".production-confirm-close").addEventListener("click", () => close(null));
+      overlay.querySelector(".production-confirm-cancel").addEventListener("click", () => close(null));
+      overlay.addEventListener("click", event => { if (event.target === overlay) close(null); });
+      overlay.querySelector(".production-confirm-submit").addEventListener("click", () => {
+        const name = input.value.trim().replace(/\s+/g, " ");
+        if (name.length < 3) { error.textContent = "Informe o nome RP do responsável."; error.hidden = false; input.focus(); return; }
+        if (!check.checked) { error.textContent = "Confirme que conferiu os materiais."; error.hidden = false; check.focus(); return; }
+        close(name);
+      });
+      input.addEventListener("keydown", event => { if (event.key === "Enter") overlay.querySelector(".production-confirm-submit").click(); });
+      setTimeout(() => input.focus(), 0);
+    });
   }
 
   async function updateStatus(orderId, status, note) {
@@ -106,6 +145,7 @@
         <div class="summary-row"><span>Cliente</span><strong>${esc(order.cnpj_name || order.customer_name)}</strong></div>
         <div class="summary-row"><span>Registrado por</span><strong>${esc(order.received_by_profile?.name || "—")}</strong></div>
         <div class="summary-row"><span>Ajudou na produção</span><strong>${esc(order.production_helpers || "Sem colaborador extra")}</strong></div>
+        ${order.production_responsible ? `<div class="summary-row"><span>Responsável pela baixa</span><strong>${esc(order.production_responsible)}</strong></div>` : ""}
         <div class="summary-row"><span>Tabela aplicada</span><strong>${esc(window.DistrictPricing.label(order.pricing_tier || order.customer_type))}</strong></div><div class="summary-row"><span>Origem dos materiais</span><strong>Geral primeiro; Gerência para completar</strong></div>
         <div class="summary-row"><span>Passaporte</span><strong>${esc(order.passport || "—")}</strong></div>
         <div class="summary-row"><span>Telefone</span><strong>${esc(order.phone || "—")}</strong></div>
@@ -119,11 +159,16 @@
         <div class="summary-row summary-total"><span>Total da venda</span><strong>${money(order.final_amount ?? order.total_amount)}</strong></div>
         ${order.notes ? `<div class="order-note"><strong>Observação</strong><p>${esc(order.notes)}</p></div>` : ""}
       </div><div><h3 class="timeline-title">Linha do tempo</h3><div class="order-timeline">${history.map((entry,index) => `<div class="timeline-entry ${statusClass(entry.status)} ${index === history.length - 1 ? "current" : ""}"><span class="timeline-dot"></span><div><strong>${esc(statusLabel(entry.status))}</strong><time>${formatDateTime(entry.created_at)}</time>${entry.note ? `<p>${esc(entry.note)}</p>` : ""}</div></div>`).join("") || `<div class="empty">Nenhuma atualização registrada.</div>`}</div></div></div>
-      <section class="materials-required-section"><div class="section-head"><div><span class="eyebrow">Plano de produção</span><h3>O que a equipe precisa fazer</h3><p>O cálculo usa o estoque disponível e abre automaticamente as receitas dos materiais intermediários.</p></div></div><div class="production-plan-grid">
+      <section class="materials-required-section"><div class="section-head"><div><span class="eyebrow">Plano de produção</span><h3>O que a equipe precisa fazer</h3><p>O cálculo usa o estoque disponível, respeita o rendimento das receitas e usa Geral antes da Gerência.</p></div></div><div class="production-plan-grid">
         ${planList("Estoque Geral", "📦", plan.general, "Nenhum material encontrado no estoque geral", "plan-separate")}
         ${planList("Estoque Gerência", "📦", plan.management, "Nenhum material encontrado no estoque da gerência", "plan-separate")}
         ${planList("Produzir", "🔨", plan.produce, "Nenhum material intermediário precisa ser produzido", "plan-produce")}
         ${planList("Ainda falta obter", "!", plan.missing, "Todos os materiais básicos estão disponíveis", "plan-missing")}
+      </div>
+      <div class="production-consume-action">
+        ${(order.order_inventory_consumptions || []).length
+          ? `<div class="finance-success"><strong>Materiais já baixados.</strong><p>Baixa registrada em ${formatDateTime(order.order_inventory_consumptions[0].consumed_at)}.</p></div>`
+          : `<div><strong>Pronto para iniciar?</strong><p>A baixa é feita uma única vez e desconta Geral primeiro, depois Gerência.</p></div><button id="consumeOrderMaterials" class="btn primary" type="button" data-order-id="${esc(order.id)}" data-order-code="${esc(order.code)}">Dar baixa e iniciar produção</button>`}
       </div></section>`;
 
     content.querySelector(".copy-order-code")?.addEventListener("click", async () => { await navigator.clipboard.writeText(order.code); toast("Código copiado."); });
@@ -133,7 +178,7 @@
   async function loadReferences() {
     const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
       client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
-      client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,is_active").eq("is_active", true).order("name"),
+      client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,output_quantity,is_active").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
       client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
       client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity")
@@ -258,8 +303,9 @@
     const { data, error } = await client.from("orders").select(`
       id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,cash_posted_at,vault_deposited_at,vault_deposited_by,status,created_at,deleted_at,production_helpers,
       received_by_profile:profiles!orders_received_by_fkey(name,email),
-      order_items(quantity,product_name,unit_price,subtotal,product_id,products(product_materials(material_id,quantity_required,materials(id,name,unit)))),
-      order_status_history(status,note,created_at)
+      order_items(quantity,product_name,unit_price,subtotal,product_id,products(output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit)))),
+      order_status_history(status,note,created_at),
+      order_inventory_consumptions(consumed_at,stock_id)
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 
@@ -313,6 +359,31 @@
       } finally {
         paymentButton.disabled = false;
         paymentButton.textContent = "Alterar";
+      }
+      return;
+    }
+
+    const consumeButton = event.target.closest("#consumeOrderMaterials");
+    if (consumeButton) {
+      const responsibleName = await requestProductionResponsible(consumeButton.dataset.orderCode);
+      if (!responsibleName) return;
+      consumeButton.disabled = true;
+      consumeButton.textContent = "Processando...";
+      try {
+        const { data, error } = await client.rpc("start_order_production", {
+          p_order_id: consumeButton.dataset.orderId,
+          p_responsible_name: responsibleName
+        });
+        if (error) throw error;
+        toast(data?.already_consumed ? "Os materiais desta encomenda já haviam sido baixados." : "Materiais baixados e produção iniciada.");
+        document.getElementById("orderDetailsModal").classList.remove("open");
+        await loadReferences();
+        await load();
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Não foi possível dar baixa nos materiais.");
+        consumeButton.disabled = false;
+        consumeButton.textContent = "Dar baixa e iniciar produção";
       }
       return;
     }

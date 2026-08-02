@@ -1,0 +1,15 @@
+DISTRITO 118 SITE v7.6
+
+Implementado:
+- confirmação obrigatória antes da baixa de materiais;
+- nome RP do responsável;
+- confirmação de conferência dos materiais;
+- responsável salvo na encomenda e na produção;
+- evento único para os logs de saída Geral, Gerência e histórico de encomendas;
+- proteção existente contra baixa duplicada preservada.
+
+ATUALIZAÇÃO:
+1. Faça backup do Supabase.
+2. Execute database/029-v7-6-responsavel-baixa-logs-estoques.sql.
+3. Publique o site.
+4. Atualize o bot para v5.3.0 e reinicie.

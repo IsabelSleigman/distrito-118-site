@@ -1,0 +1,18 @@
+DISTRITO 118 — SITE v7.5.4
+
+Adiciona log detalhado no Discord quando alguém usa “Dar baixa e iniciar produção”.
+
+1. Faça backup do Supabase.
+2. Execute database/027-v7-5-4-log-producao-discord.sql.
+3. Publique o site.
+4. Atualize o bot para v5.2.0 e reinicie.
+
+O canal de histórico de encomendas recebe:
+- código e cliente;
+- responsável pela baixa;
+- materiais retirados;
+- baú de origem (Geral/Gerência);
+- quantidade e saldo antes/depois;
+- sobras de produção, quando houver.
+
+A proteção contra baixa duplicada também impede logs duplicados.

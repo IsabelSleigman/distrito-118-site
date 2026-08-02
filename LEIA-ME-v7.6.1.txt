@@ -1,0 +1,11 @@
+DISTRITO 118 — SITE v7.6.1
+
+Correção:
+- O plano de produção da encomenda agora respeita o rendimento do produto.
+- Exemplo: 5 unidades de um produto que rende 5 usam apenas 1 fabricação da receita.
+- A baixa no banco já respeitava o rendimento; esta versão corrige a prévia exibida no modal da encomenda.
+
+Atualização:
+1. Publique os arquivos do site.
+2. Não é necessário executar SQL novo.
+3. Atualize a página com Ctrl + F5.
