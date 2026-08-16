@@ -960,3 +960,30 @@ body {
 .goal-modal-card{width:min(820px,calc(100vw - 32px));max-height:92vh;overflow:auto}.goal-participant-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:230px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:12px}.goal-participant-list label{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.025);cursor:pointer}.goal-participant-list input{width:18px;height:18px;accent-color:#fff}.goal-participant-list span,.goal-participant-list strong,.goal-participant-list small{display:block}.goal-participant-list small,.bonus-state small{color:var(--muted)}.bonus-state{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-top:7px}.goal-members-panel .goal-payment-input{display:block;margin-bottom:5px}.member-goal-card+.member-goal-card{margin-top:18px}
 @media(max-width:700px){.goal-participant-list{grid-template-columns:1fr}.goal-modal-card{width:100%;border-radius:20px 20px 0 0}}
 .manual-progress-rows{display:grid;gap:10px;margin:20px 0}.manual-progress-row{display:grid;grid-template-columns:minmax(0,1fr) 190px;align-items:center;gap:18px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.manual-progress-row strong,.manual-progress-row small{display:block}.manual-progress-row small{margin-top:5px;color:var(--muted)}.manual-progress-row label{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.manual-progress-row input{display:block;width:100%;margin-top:6px}@media(max-width:600px){.manual-progress-row{grid-template-columns:1fr}}
+
+/* V8.1.4 — acabamento das telas de metas */
+#goalModal,#manualProgressModal{padding:28px;align-items:center;overflow:hidden}
+#goalModal .goal-modal-card{width:min(1040px,calc(100vw - 56px));height:min(880px,calc(100vh - 56px));max-height:none;display:flex;overflow:hidden;border-radius:24px}
+#goalModal .modal-form{width:100%;padding:34px 38px 28px;overflow-y:auto;scrollbar-gutter:stable}
+#goalModal .modal-form>p{max-width:700px;margin:6px 0 24px;color:var(--muted);line-height:1.55}
+#goalModal .form-grid{gap:18px 20px}
+#goalModal .field label,#manualProgressModal .field label{margin-bottom:8px}
+#goalModal input,#goalModal select,#manualProgressModal input{min-height:50px;border-radius:12px;background:#0d0d10;color:var(--text);border:1px solid rgba(255,255,255,.14)}
+#goalModal input:focus,#goalModal select:focus,#manualProgressModal input:focus{border-color:rgba(255,255,255,.42);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+#goalParticipantField{padding:18px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.018)}
+#goalParticipantField>small{display:block;margin-top:10px;line-height:1.5;color:var(--muted)}
+.goal-participant-list{grid-template-columns:repeat(3,minmax(0,1fr));max-height:230px;gap:9px;padding:8px;background:#0c0c0e}
+.goal-participant-list label{min-height:58px;padding:10px 12px;border:1px solid transparent;background:rgba(255,255,255,.035)}
+.goal-participant-list label:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.055)}
+.goal-participant-list strong{font-size:.78rem;line-height:1.25}.goal-participant-list small{margin-top:3px;font-size:.68rem}
+#goalModal .goal-requirement-row{grid-template-columns:minmax(0,1fr) 180px 44px;align-items:center}
+#goalModal .form-actions{position:sticky;bottom:-28px;z-index:3;margin:4px -38px -28px;padding:18px 38px 20px;background:linear-gradient(180deg,rgba(15,15,18,.84),#0f0f12 28%);border-top:1px solid rgba(255,255,255,.08)}
+#manualProgressModal .goal-modal-card{width:min(760px,calc(100vw - 48px));max-height:min(760px,calc(100vh - 48px));overflow:hidden;border-radius:24px}
+#manualProgressModal .modal-form{width:100%;padding:34px 38px;overflow-y:auto}
+#manualProgressModal .modal-form>p{margin:6px 0 22px;color:var(--muted);line-height:1.5}
+.manual-progress-row{padding:16px 18px;background:#0d0d10}.manual-progress-row input{background:#09090b!important;color:var(--text)!important}
+.goal-members-panel table input,.goal-members-panel table select{min-height:40px;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:9px;background:#0b0b0d!important;color:var(--text)!important}
+.goal-members-panel table input{width:150px}.goal-members-panel table select{min-width:155px}
+.goal-members-panel th{white-space:nowrap}.goal-members-panel td{vertical-align:middle}.goal-members-panel .table-actions{flex-wrap:wrap;min-width:190px}
+@media(max-width:900px){#goalModal{padding:14px;align-items:flex-end}.goal-participant-list{grid-template-columns:repeat(2,minmax(0,1fr))}#goalModal .goal-modal-card{width:100%;height:min(94vh,900px);border-radius:22px 22px 0 0}#goalModal .modal-form{padding:28px 24px 22px}#goalModal .form-actions{margin-left:-24px;margin-right:-24px;margin-bottom:-22px;padding-left:24px;padding-right:24px}}
+@media(max-width:620px){.goal-participant-list{grid-template-columns:1fr;max-height:210px}#goalModal .form-grid{grid-template-columns:1fr}#goalModal .field.full{grid-column:auto}#goalModal .goal-requirement-row{grid-template-columns:1fr 100px 42px}#manualProgressModal{padding:0;align-items:flex-end}#manualProgressModal .goal-modal-card{width:100%;max-height:94vh;border-radius:22px 22px 0 0}#manualProgressModal .modal-form{padding:26px 20px}.goal-members-panel table input{width:120px}}
