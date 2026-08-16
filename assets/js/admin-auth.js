@@ -159,7 +159,7 @@ async function protectDistrictAdmin() {
 
   const currentUser = await loadCurrentDistrictUser(session.user);
   if (!currentUser) return;
-  if (currentUser.mustChangePassword) { window.location.replace("/alterar-senha"); return; }
+  if (currentUser.mustChangePassword) { window.location.replace("/alterar-senha.html"); return; }
 
   window.currentDistrictUser = currentUser;
   if (!applyDistrictPermissions(currentUser)) return;

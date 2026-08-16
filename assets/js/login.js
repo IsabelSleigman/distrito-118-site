@@ -41,7 +41,7 @@ async function setupDistrictLogin() {
       email = data;
     }
 
-    const { error } = await window.distritoSupabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await window.distritoSupabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       console.error(error);
@@ -52,9 +52,22 @@ async function setupDistrictLogin() {
     }
 
     loginMessage("Acesso autorizado. Abrindo o painel...", "success");
-    const { data: profile } = await window.distritoSupabase.from("profiles").select("must_change_password").eq("id",(await window.distritoSupabase.auth.getUser()).data.user.id).maybeSingle();
-    const { data: member } = await window.distritoSupabase.from("members").select("access_status").eq("profile_id",(await window.distritoSupabase.auth.getUser()).data.user.id).maybeSingle();
-    if (profile?.must_change_password || member?.access_status === "temporary_password") { window.location.replace("/alterar-senha"); return; }
+    const userId = authData?.user?.id;
+    if (!userId) {
+      loginMessage("A sessão foi criada, mas o usuário não foi identificado. Tente novamente.");
+      button.disabled=false; button.textContent="Entrar no painel"; return;
+    }
+    let mustChange = authData.user.user_metadata?.must_change_password === true;
+    try {
+      const [{ data: profile }, { data: member }] = await Promise.all([
+        window.distritoSupabase.from("profiles").select("must_change_password").eq("id",userId).maybeSingle(),
+        window.distritoSupabase.from("members").select("access_status").eq("profile_id",userId).maybeSingle()
+      ]);
+      mustChange = mustChange || profile?.must_change_password === true || member?.access_status === "temporary_password";
+    } catch (lookupError) {
+      console.error("Falha ao consultar troca obrigatória:", lookupError);
+    }
+    if (mustChange) { window.location.assign("/alterar-senha.html"); return; }
     const redirect = (params.get("redirect") || "").replace(/\.html$/i, "");
     const target = redirect && redirect !== "index" ? `/admin/${encodeURIComponent(redirect)}` : "/admin";
     window.location.replace(target);
