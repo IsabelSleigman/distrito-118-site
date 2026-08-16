@@ -1,6 +1,6 @@
 (() => {
   const client = window.distritoSupabase;
-  let catalog = [], recipes = [], balances = [], stocks = [];
+  let catalog = [], products = [], recipes = [], balances = [], stocks = [];
   const strategies = new Map();
   const esc = value => String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
   const fmt = value => Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -8,16 +8,16 @@
   const recipeFor = id => recipes.filter(row => row.production_item_id === id);
 
   function groupedOptions(selected = "") {
-    const options = list => list.map(item => `<option value="${item.item_id}" ${item.item_id === selected ? "selected" : ""}>${esc(item.name)}</option>`).join("");
-    const products = catalog.filter(item => item.is_product);
+    const productOptions = products.map(product => `<option value="product:${product.id}" ${`product:${product.id}` === selected ? "selected" : ""}>${esc(product.name)}</option>`).join("");
     const materials = catalog.filter(item => !item.is_product && item.is_craftable);
-    return `<optgroup label="PRODUTOS">${options(products)}</optgroup><optgroup label="MATERIAIS PRODUZÍVEIS">${options(materials)}</optgroup>`;
+    const materialOptions = materials.map(item => `<option value="item:${item.item_id}" ${`item:${item.item_id}` === selected ? "selected" : ""}>${esc(item.name)}</option>`).join("");
+    return `<optgroup label="PRODUTOS">${productOptions}</optgroup><optgroup label="MATERIAIS PRODUZÍVEIS">${materialOptions}</optgroup>`;
   }
 
-  function addSelection(itemId = catalog.find(item => item.is_product || item.is_craftable)?.item_id, quantity = 1) {
-    if (!itemId) return;
+  function addSelection(selectionKey = products[0] ? `product:${products[0].id}` : catalog.find(item => item.is_craftable) ? `item:${catalog.find(item => item.is_craftable).item_id}` : "", quantity = 1) {
+    if (!selectionKey) return;
     const row = document.createElement("div"); row.className = "calculator-item";
-    row.innerHTML = `<div class="field"><label>Item</label><select class="calculator-selection">${groupedOptions(itemId)}</select></div><div class="field"><label>Quantidade</label><input class="calculator-quantity" type="number" min="1" value="${quantity}"></div><button class="icon-btn danger calculator-remove" type="button">×</button>`;
+    row.innerHTML = `<div class="field"><label>Item</label><select class="calculator-selection">${groupedOptions(selectionKey)}</select></div><div class="field"><label>Quantidade</label><input class="calculator-quantity" type="number" min="1" value="${quantity}"></div><button class="icon-btn danger calculator-remove" type="button">×</button>`;
     row.querySelectorAll("select,input").forEach(element => element.addEventListener("input", calculate));
     row.querySelector("button").onclick = () => { row.remove(); calculate(); };
     document.getElementById("calculatorItems").appendChild(row); calculate();
@@ -34,11 +34,19 @@
   function selectedItems() {
     const merged = new Map();
     document.querySelectorAll(".calculator-item").forEach(row => {
-      const id = row.querySelector("select").value;
+      const key = row.querySelector("select").value;
       const quantity = Math.max(1,Number(row.querySelector("input").value || 1));
-      merged.set(id,(merged.get(id)||0)+quantity);
+      merged.set(key,(merged.get(key)||0)+quantity);
     });
-    return [...merged].map(([id,quantity]) => ({ id,quantity }));
+    return [...merged].map(([key,quantity]) => {
+      const [type,id] = key.split(":");
+      if (type === "product") {
+        const product = products.find(row => row.id === id);
+        return product ? { key, id:product.inventory_item_id, quantity, displayName:product.name } : null;
+      }
+      const item = itemById(id);
+      return item ? { key, id, quantity, displayName:item.name } : null;
+    }).filter(Boolean);
   }
 
   function buildPlan(requested, considerStock) {
@@ -49,36 +57,36 @@
       if (byScope[scope]) byScope[scope].set(row.item_id,considerStock ? Math.max(0,Number(row.quantity||0)-Number(row.reserved_quantity||0)) : 0);
     });
     const selected = new Map(), separate = new Map(), produce = new Map(), missing = new Map(), surplus = new Map(), dependencies = new Map(), basics = new Map();
-    requested.forEach(row => add(selected,itemById(row.id),row.quantity));
+    requested.forEach(row => add(selected,{ ...itemById(row.id), item_id:row.key, name:row.displayName },row.quantity));
 
-    const take = (item,quantity) => {
+    const take = (item,quantity,displayName=null) => {
       let remaining=quantity;
       for (const scope of ["geral","gerencia"]) {
         const available=byScope[scope].get(item.item_id)||0, used=Math.min(available,remaining);
         if (used>0) {
-          add(separate,item,used,`:${scope}`,`${item.name} · ${scope === "geral" ? "Geral" : "Gerência"}`);
+          add(separate,item,used,`:${scope}`,`${displayName || item.name} · ${scope === "geral" ? "Geral" : "Gerência"}`);
           byScope[scope].set(item.item_id,available-used); remaining-=used;
         }
       }
       return remaining;
     };
 
-    const process = (id,quantity,{root=false,stack=[]}={}) => {
+    const process = (id,quantity,{root=false,stack=[],displayName=null}={}) => {
       const item=itemById(id); if(!item||quantity<=0)return;
       if(stack.includes(id)){add(missing,item,quantity);return;}
       const recipe=recipeFor(id);
       let remaining=quantity;
       const mode=root ? "auto" : (strategies.get(id)||"auto");
-      if(mode!=="produce") remaining=take(item,remaining);
+      if(mode!=="produce") remaining=take(item,remaining,displayName);
       if(remaining<=0)return;
-      if(!recipe.length || mode==="stock"){add(missing,item,remaining); if(!recipe.length)add(basics,item,remaining); return;}
+      if(!recipe.length || mode==="stock"){add(missing,item,remaining,"",displayName); if(!recipe.length)add(basics,item,remaining,"",displayName); return;}
       if(!root)add(dependencies,item,quantity);
       const output=Math.max(.000001,Number(recipe[0].output_quantity||1));
       const batches=Math.ceil((remaining/output)-1e-9), produced=batches*output, extra=produced-remaining;
-      add(produce,item,produced); if(extra>0)add(surplus,item,extra);
+      add(produce,item,produced,"",displayName); if(extra>0)add(surplus,item,extra,"",displayName);
       recipe.forEach(component => process(component.component_item_id,batches*Number(component.quantity_required||0),{stack:[...stack,id]}));
     };
-    requested.forEach(row => process(row.id,row.quantity,{root:true}));
+    requested.forEach(row => process(row.id,row.quantity,{root:true,displayName:row.displayName}));
     return {selected:sorted(selected),separate:sorted(separate),produce:sorted(produce),missing:sorted(missing),surplus:sorted(surplus),dependencies:sorted(dependencies),basics:sorted(basics)};
   }
 
@@ -111,14 +119,15 @@
 
   async function load() {
     window.DistrictLoader?.show("Carregando itens, receitas e estoques...");
-    const [c,r,s,b]=await Promise.all([
+    const [c,p,r,s,b]=await Promise.all([
       client.from("inventory_catalog").select("item_id,name,unit,is_active,is_product,is_material,is_craftable").eq("is_active",true).order("name"),
+      client.from("products").select("id,name,inventory_item_id").eq("is_active",true).eq("allows_order",true).not("inventory_item_id","is",null).order("name"),
       client.from("inventory_craft_recipes").select("production_item_id,component_item_id,quantity_required,output_quantity"),
       client.from("inventory_stocks").select("id,scope").in("scope",["geral","gerencia"]),
       client.from("inventory_all_balances").select("stock_id,item_id,quantity,reserved_quantity")
     ]);
-    if(c.error||r.error||s.error||b.error)throw(c.error||r.error||s.error||b.error);
-    catalog=c.data||[];recipes=r.data||[];stocks=s.data||[];balances=b.data||[];
+    if(c.error||p.error||r.error||s.error||b.error)throw(c.error||p.error||r.error||s.error||b.error);
+    catalog=c.data||[];products=p.data||[];recipes=r.data||[];stocks=s.data||[];balances=b.data||[];
     document.getElementById("calculatorItems").innerHTML="";addSelection();window.DistrictLoader?.hide();
   }
   document.getElementById("addCalculatorItem")?.addEventListener("click",()=>addSelection());
