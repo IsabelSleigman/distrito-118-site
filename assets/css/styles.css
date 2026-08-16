@@ -916,3 +916,4 @@ body {
 .production-confirm-check input{margin-top:3px}
 .production-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
 .production-confirm-error{margin-top:12px}
+.goal-requirement-row{display:grid;grid-template-columns:minmax(0,1fr) 150px 42px;gap:10px;margin-bottom:10px}.goal-requirement-row select,.goal-requirement-row input{width:100%}

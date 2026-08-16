@@ -5,6 +5,16 @@
   let goals = [];
   let members = [];
   let currentGoal = null;
+  let inventoryItems = [];
+  let progressRows = [];
+
+  function addRequirementRow() {
+    const row = document.createElement("div");
+    row.className = "goal-requirement-row";
+    row.innerHTML = `<select class="goal-requirement-item" required><option value="">Selecione...</option>${inventoryItems.map(i => `<option value="${esc(i.item_id)}">${esc(i.name)}</option>`).join("")}</select><input class="goal-requirement-quantity" type="number" min="0.01" step="0.01" required placeholder="Quantidade"><button class="icon-btn danger" type="button">×</button>`;
+    row.querySelector("button").addEventListener("click", () => row.remove());
+    document.getElementById("goalRequirementRows").appendChild(row);
+  }
 
   function isoDate(date) {
     const y = date.getFullYear();
@@ -45,6 +55,8 @@
     document.getElementById("goalFormTitle").value = "Meta semanal";
     document.getElementById("goalStartDate").value = start;
     document.getElementById("goalEndDate").value = end;
+    document.getElementById("goalRequirementRows").innerHTML = "";
+    addRequirementRow();
     document.getElementById("goalModal").classList.add("open");
   }
 
@@ -81,13 +93,15 @@
     if (!currentGoal) return;
     const tbody = document.getElementById("goalMembersTable");
     tbody.innerHTML = `<tr><td colspan="6" class="loading-row">Carregando membros...</td></tr>`;
-    const { data, error } = await client.from("weekly_goal_members").select("id,goal_id,profile_id,member_name,discord_user_id,amount_paid,paid_at,notes,updated_at").eq("goal_id", currentGoal.id).order("member_name");
+    const { data, error } = await client.from("weekly_goal_members").select("id,goal_id,profile_id,member_name,discord_user_id,amount_paid,paid_at,notes,status,updated_at").eq("goal_id", currentGoal.id).order("member_name");
     if (error) {
       console.error(error);
       tbody.innerHTML = `<tr><td colspan="6" class="empty">Não foi possível carregar os membros.</td></tr>`;
       return;
     }
     members = data || [];
+    const { data: progress } = await client.from("weekly_goal_member_progress").select("member_id,item_name,required_quantity,credited_quantity,remaining_quantity,extra_quantity").eq("goal_id", currentGoal.id).order("item_name");
+    progressRows = progress || [];
     render();
   }
 
@@ -97,9 +111,11 @@
     document.getElementById("goalTarget").textContent = money(currentGoal.target_amount);
     document.getElementById("goalMembersTotal").textContent = `${members.length} membro${members.length === 1 ? "" : "s"}`;
 
-    const paidCount = members.filter(member => statusFor(member).key === "paid").length;
-    const partialCount = members.filter(member => statusFor(member).key === "partial").length;
-    const pendingCount = members.filter(member => statusFor(member).key === "pending").length;
+    const participating = members.filter(member => !["absent","excused"].includes(member.status));
+    const memberComplete = member => { const rows=progressRows.filter(p=>p.member_id===member.id); return rows.length ? rows.every(p=>Number(p.remaining_quantity)===0) : statusFor(member).key==="paid"; };
+    const paidCount = participating.filter(memberComplete).length;
+    const partialCount = participating.filter(member => !memberComplete(member) && progressRows.some(p=>p.member_id===member.id && Number(p.credited_quantity)>0)).length;
+    const pendingCount = participating.length-paidCount-partialCount;
     document.getElementById("goalPaidCount").textContent = paidCount;
     document.getElementById("goalPartialCount").textContent = partialCount;
     document.getElementById("goalPendingCount").textContent = pendingCount;
@@ -107,16 +123,18 @@
 
     const tbody = document.getElementById("goalMembersTable");
     tbody.innerHTML = members.map(member => {
-      const state = statusFor(member);
+      const state = member.status === "absent" ? {label:"Ausência",className:"warning"} : member.status === "debt" ? {label:"Em débito",className:"red"} : statusFor(member);
       const paid = Number(member.amount_paid || 0);
       const target = Number(currentGoal.target_amount || 0);
       const progress = target ? Math.min(100, Math.round((paid / target) * 100)) : 0;
+      const itemProgress = progressRows.filter(p=>p.member_id===member.id);
+      const progressHtml = itemProgress.length ? itemProgress.map(p=>`<div class="muted-caption"><strong>${esc(p.item_name)}</strong>: ${Number(p.credited_quantity)}/${Number(p.required_quantity)}${Number(p.extra_quantity)>0?` · +${Number(p.extra_quantity)} extra`:Number(p.remaining_quantity)>0?` · faltam ${Number(p.remaining_quantity)}`:" · ✓"}</div>`).join("") : `<div class="goal-progress"><div class="goal-progress-track"><span style="width:${progress}%"></span></div><small>${progress}%</small></div>`;
       return `<tr data-member-id="${esc(member.id)}">
         <td><strong>${esc(member.member_name)}</strong>${member.discord_user_id ? `<div class="muted-caption">Discord: ${esc(member.discord_user_id)}</div>` : ""}</td>
         <td><input class="goal-payment-input" type="number" min="0" step="1" value="${paid}" aria-label="Valor pago por ${esc(member.member_name)}"></td>
         <td>${money(target)}</td>
-        <td><div class="goal-progress"><div class="goal-progress-track"><span style="width:${progress}%"></span></div><small>${progress}%</small></div></td>
-        <td><span class="badge ${state.className}">${state.label}</span>${member.paid_at ? `<div class="muted-caption">${new Date(member.paid_at).toLocaleString("pt-BR")}</div>` : ""}</td>
+        <td>${progressHtml}</td>
+        <td><select class="goal-member-status"><option value="in_progress" ${member.status === "in_progress" ? "selected" : ""}>Em andamento</option><option value="absent" ${member.status === "absent" ? "selected" : ""}>Ausência</option><option value="excused" ${member.status === "excused" ? "selected" : ""}>Dispensado</option><option value="debt" ${member.status === "debt" ? "selected" : ""}>Em débito</option><option value="completed" ${member.status === "completed" ? "selected" : ""}>Concluída</option><option value="completed_with_extra" ${member.status === "completed_with_extra" ? "selected" : ""}>Com excedente</option></select><div><span class="badge ${state.className}">${state.label}</span></div></td>
         <td><div class="table-actions"><button class="icon-btn save-goal-payment" type="button">Salvar</button><button class="icon-btn danger remove-goal-member" type="button">Remover</button></div></td>
       </tr>`;
     }).join("") || `<tr><td colspan="6" class="empty">Nenhum membro nesta semana.</td></tr>`;
@@ -145,6 +163,7 @@
     document.getElementById("emptyNewGoalButton")?.addEventListener("click", openGoalModal);
     document.getElementById("closeGoalModal")?.addEventListener("click", closeGoalModal);
     document.getElementById("cancelGoalModal")?.addEventListener("click", closeGoalModal);
+    document.getElementById("addGoalRequirement")?.addEventListener("click", addRequirementRow);
     document.getElementById("goalSelector")?.addEventListener("change", async event => {
       currentGoal = goals.find(goal => goal.id === event.target.value) || currentGoal;
       await loadMembers();
@@ -163,11 +182,12 @@
       const button = event.currentTarget.querySelector('button[type="submit"]');
       button.disabled = true; button.textContent = "Criando...";
       try {
-        const { data, error } = await client.rpc("create_weekly_goal", {
+        const requirements = [...document.querySelectorAll(".goal-requirement-row")].map(row => ({ item_id: row.querySelector(".goal-requirement-item").value, quantity: Number(row.querySelector(".goal-requirement-quantity").value) })).filter(x => x.item_id && x.quantity > 0);
+        const { data, error } = await client.rpc("create_weekly_goal_v2", {
           p_start_date: document.getElementById("goalStartDate").value,
           p_end_date: document.getElementById("goalEndDate").value,
-          p_target_amount: Number(document.getElementById("goalTargetAmount").value),
-          p_title: document.getElementById("goalFormTitle").value.trim() || "Meta semanal"
+          p_target_amount: Number(document.getElementById("goalTargetAmount").value || 0), p_reward_name: document.getElementById("goalRewardName").value.trim() || null,
+          p_requirements: requirements, p_title: document.getElementById("goalFormTitle").value.trim() || "Meta semanal"
         });
         if (error) throw error;
         closeGoalModal();
@@ -224,10 +244,18 @@
         await loadMembers();
       }
     });
+    document.getElementById("goalMembersTable")?.addEventListener("change", async event => {
+      if (!event.target.matches(".goal-member-status")) return;
+      const row = event.target.closest("tr[data-member-id]");
+      const { error } = await client.rpc("set_weekly_goal_member_status", { p_member_id: row.dataset.memberId, p_status: event.target.value, p_reason: null });
+      if (error) toast(error.message || "Não foi possível alterar a situação."); else { toast("Situação atualizada."); await loadMembers(); }
+    });
   }
 
   document.addEventListener("district-auth-ready", async () => {
     bindEvents();
+    const { data } = await client.from("inventory_catalog").select("item_id,name").order("name");
+    inventoryItems = data || [];
     await loadGoals();
     window.lucide?.createIcons();
   }, { once: true });

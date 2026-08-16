@@ -34,7 +34,7 @@ async function loadCurrentDistrictUser(user) {
 }
 
 function isDistrictAdmin(user) {
-  return user.roles.includes("admin");
+  return user.roles.some(role => ["admin", "lideranca", "01", "02", "03"].includes(role));
 }
 
 function isDistrictManager(user) {
