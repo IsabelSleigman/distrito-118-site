@@ -8,6 +8,13 @@ async function loadCurrentDistrictUser(user) {
 
   if (profileError) console.error("Erro ao carregar perfil:", profileError);
 
+  const { data: member, error: memberError } = await client
+    .from("members")
+    .select("name,email,access_level,status")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (memberError) console.error("Erro ao carregar cadastro do membro:", memberError);
+
   if (profile && profile.is_active === false) {
     await client.auth.signOut();
     window.location.replace("/login?error=inactive");
@@ -27,8 +34,9 @@ async function loadCurrentDistrictUser(user) {
 
   return {
     id: user.id,
-    name: profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Usuário",
-    email: profile?.email || user.email || "",
+    name: member?.name || profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Usuário",
+    email: member?.email || profile?.email || user.email || "",
+    accessLevel: member?.access_level || null,
     roles,
   };
 }
@@ -46,7 +54,24 @@ function currentAdminSection() {
   return page.replace(/\.html$/i, "");
 }
 
+function ensureUsersNavigation() {
+  const nav = document.querySelector(".sidebar-nav");
+  if (!nav) return;
+  const add = (href, icon, label, beforeSelector, adminOnly = false) => {
+    if (nav.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement("a");
+    link.href = href;
+    if (adminOnly) link.dataset.adminOnly = "true";
+    link.innerHTML = `<i data-lucide="${icon}"></i><span>${label}</span>`;
+    nav.insertBefore(link, nav.querySelector(beforeSelector) || nav.lastElementChild);
+  };
+  add("/admin/usuarios", "users", "Usuários", 'a[href="/admin/produtos"]', true);
+  add("/admin/categorias", "tags", "Categorias", 'a[href="/admin/estoque"]', true);
+  add("/admin/caixa", "banknote", "Caixa", 'a[href="/"]');
+}
+
 function applyDistrictPermissions(user) {
+  ensureUsersNavigation();
   const isAdmin = isDistrictAdmin(user);
   const isManager = isDistrictManager(user);
   const allowedForManager = new Set(["admin", "index", "encomendas", "metas", "calculadora", "caixa"]);
@@ -73,8 +98,10 @@ function renderDistrictUser(user) {
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar || document.getElementById("districtUserPanel")) return;
 
-  const roleLabel = isDistrictAdmin(user)
-    ? "Administrador"
+  const roleLabel = user.accessLevel && ["01","02","03"].includes(user.accessLevel)
+    ? `Liderança ${user.accessLevel}`
+    : isDistrictAdmin(user)
+      ? "Administrador"
     : isDistrictManager(user)
       ? "Gerente"
       : "Membro";
