@@ -113,7 +113,7 @@ begin
   if not found then raise exception 'Meta não encontrada.'; end if;
   delete from weekly_goal_requirements where goal_id=g.id;
   -- Mantém resultados, mas refaz somente participantes ainda sem entrega/lançamento.
-  delete from weekly_goal_members gm where gm.goal_id=g.id
+  delete from weekly_goal_members gm where gm.goal_id=g.id and coalesce(gm.amount_paid,0)=0 and gm.status='in_progress'
    and not exists(select 1 from weekly_goal_submissions s where s.member_id=gm.id)
    and not exists(select 1 from weekly_goal_ledger l where l.member_id=gm.id);
  end if;
