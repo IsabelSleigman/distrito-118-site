@@ -57,7 +57,9 @@ async function setupDistrictLogin() {
       loginMessage("A sessão foi criada, mas o usuário não foi identificado. Tente novamente.");
       button.disabled=false; button.textContent="Entrar no painel"; return;
     }
-    let mustChange = authData.user.user_metadata?.must_change_password === true;
+    // A fonte oficial é profiles/members. Metadados antigos do Auth podem ficar
+    // desatualizados depois da primeira troca e não devem forçar novo redirecionamento.
+    let mustChange = false;
     try {
       const [{ data: profile }, { data: member }] = await Promise.all([
         window.distritoSupabase.from("profiles").select("must_change_password").eq("id",userId).maybeSingle(),
