@@ -1,0 +1,16 @@
+Distrito 118 — Site v7.6.3
+
+Ajuste pós-baixa de encomendas:
+- editar uma encomenda nunca movimenta estoque automaticamente;
+- se a edição aumentar a necessidade, os detalhes mostram somente a diferença;
+- botão "Dar baixa do ajuste" exige o nome RP do responsável;
+- se o pedido diminuir, o sistema apenas informa o excedente já baixado e não devolve nada sozinho;
+- aumentos futuros dentro do que já havia sido baixado não geram nova retirada;
+- a baixa adicional gera logs nos canais Geral/Gerência e um resumo no histórico de encomendas.
+
+Atualização:
+1. Backup do Supabase.
+2. Execute database/031-v7-6-3-ajuste-pos-baixa.sql.
+3. Publique o site.
+4. Atualize/reinicie o bot v5.3.1.
+5. Ctrl+F5 no navegador.

@@ -92,20 +92,37 @@
     return `<section class="production-plan-block ${className}"><div class="production-plan-title"><span>${icon}</span><div><h4>${title}</h4><p>${items.length ? `${items.length} item(ns)` : emptyText}</p></div></div>${items.length ? `<div class="production-plan-list">${items.map(item => `<div><span>${esc(item.name)}</span><strong>${item.quantity} ${esc(item.unit)}</strong></div>`).join("")}</div>` : ""}</section>`;
   }
 
+  function buildProductionAdjustment(order, plan) {
+    const consumed = new Map((order.order_production_requirements || []).map(row => [row.material_id, Number(row.consumed_required_quantity || 0)]));
+    const current = new Map((plan.direct || []).map(item => [item.id, Number(item.quantity || 0)]));
+    const ids = new Set([...consumed.keys(), ...current.keys()]);
+    const additions = [], excess = [];
+    ids.forEach(id => {
+      const material = materialById(id);
+      const required = current.get(id) || 0;
+      const already = consumed.get(id) || 0;
+      const delta = required - already;
+      const row = { id, name: material?.name || "Material", unit: material?.unit || "unidade", quantity: Math.abs(delta), required, already };
+      if (delta > 0.000001) additions.push(row);
+      if (delta < -0.000001) excess.push(row);
+    });
+    return { additions, excess };
+  }
 
-  function requestProductionResponsible(orderCode) {
+
+  function requestProductionResponsible(orderCode, isAdjustment = false) {
     return new Promise(resolve => {
       const overlay = document.createElement("div");
       overlay.className = "modal-backdrop open production-confirm-backdrop";
       overlay.innerHTML = `<div class="modal-card production-confirm-card" role="dialog" aria-modal="true" aria-labelledby="productionConfirmTitle">
         <button class="modal-close production-confirm-close" type="button" aria-label="Fechar">×</button>
         <span class="eyebrow">Confirmação de estoque</span>
-        <h2 id="productionConfirmTitle">Dar baixa e iniciar produção</h2>
-        <p class="production-confirm-copy">Encomenda <strong>${esc(orderCode)}</strong>. Informe seu nome RP para confirmar a retirada dos materiais.</p>
+        <h2 id="productionConfirmTitle">${isAdjustment ? "Dar baixa do ajuste" : "Dar baixa e iniciar produção"}</h2>
+        <p class="production-confirm-copy">Encomenda <strong>${esc(orderCode)}</strong>. Informe seu nome RP para confirmar ${isAdjustment ? "a baixa adicional" : "a retirada dos materiais"}.</p>
         <div class="field"><label for="productionResponsibleName">Responsável pela baixa</label><input id="productionResponsibleName" maxlength="120" autocomplete="off" placeholder="Ex.: Maria Grachev"><small class="field-help">O nome ficará registrado na encomenda e nos logs do Discord.</small></div>
-        <label class="production-confirm-check"><input id="productionConfirmChecked" type="checkbox"><span>Conferi os materiais e confirmo o início da produção.</span></label>
+        <label class="production-confirm-check"><input id="productionConfirmChecked" type="checkbox"><span>${isAdjustment ? "Conferi a alteração do pedido e confirmo somente a baixa adicional." : "Conferi os materiais e confirmo o início da produção."}</span></label>
         <p class="status-update-error production-confirm-error" hidden></p>
-        <div class="production-confirm-actions"><button class="btn ghost production-confirm-cancel" type="button">Cancelar</button><button class="btn primary production-confirm-submit" type="button">Dar baixa e iniciar produção</button></div>
+        <div class="production-confirm-actions"><button class="btn ghost production-confirm-cancel" type="button">Cancelar</button><button class="btn primary production-confirm-submit" type="button">${isAdjustment ? "Dar baixa do ajuste" : "Dar baixa e iniciar produção"}</button></div>
       </div>`;
       document.body.appendChild(overlay);
       const input = overlay.querySelector("#productionResponsibleName");
@@ -126,6 +143,8 @@
     });
   }
 
+
+
   async function updateStatus(orderId, status, note) {
     const { data, error } = await client.rpc("update_order_status_v2", { p_order_id: orderId, p_status: status, p_note: String(note || "").trim() || null });
     if (error) throw error;
@@ -137,6 +156,7 @@
     const content = document.getElementById("orderDetailsContent");
     const history = uniqueHistory(order.order_status_history || []);
     const plan = buildProductionPlan(order);
+    const adjustment = buildProductionAdjustment(order, plan);
 
     content.innerHTML = `
       <div class="section-head order-modal-head"><div><span class="eyebrow">Encomenda</span><div class="order-code-line"><h2>${esc(order.code)}</h2><button class="icon-btn copy-order-code" type="button">Copiar</button></div></div><span class="badge ${statusClass(order.status)}">${esc(statusLabel(order.status))}</span></div>
@@ -167,7 +187,9 @@
       </div>
       <div class="production-consume-action">
         ${(order.order_inventory_consumptions || []).length
-          ? `<div class="finance-success"><strong>Materiais já baixados.</strong><p>Baixa registrada em ${formatDateTime(order.order_inventory_consumptions[0].consumed_at)}.</p></div>`
+          ? `<div class="finance-success"><strong>Materiais já baixados.</strong><p>Baixa registrada em ${formatDateTime(order.order_inventory_consumptions[0].consumed_at)}.</p></div>
+             ${adjustment.additions.length ? `<div class="finance-warning"><strong>Pedido alterado após a baixa.</strong><p>É necessário retirar somente o que entrou a mais:</p><div class="production-plan-list">${adjustment.additions.map(item => `<div><span>${esc(item.name)}</span><strong>+${item.quantity} ${esc(item.unit)}</strong></div>`).join("")}</div></div><button id="adjustOrderMaterials" class="btn primary" type="button" data-order-id="${esc(order.id)}" data-order-code="${esc(order.code)}">Dar baixa do ajuste</button>` : ""}
+             ${adjustment.excess.length ? `<div class="finance-warning"><strong>O pedido foi reduzido.</strong><p>Nada voltou ao estoque automaticamente. Já havia sido baixado a mais:</p><div class="production-plan-list">${adjustment.excess.map(item => `<div><span>${esc(item.name)}</span><strong>${item.quantity} ${esc(item.unit)}</strong></div>`).join("")}</div></div>` : ""}`
           : `<div><strong>Pronto para iniciar?</strong><p>A baixa é feita uma única vez e desconta Geral primeiro, depois Gerência.</p></div><button id="consumeOrderMaterials" class="btn primary" type="button" data-order-id="${esc(order.id)}" data-order-code="${esc(order.code)}">Dar baixa e iniciar produção</button>`}
       </div></section>`;
 
@@ -305,7 +327,8 @@
       received_by_profile:profiles!orders_received_by_fkey(name,email),
       order_items(quantity,product_name,unit_price,subtotal,product_id,products(output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit)))),
       order_status_history(status,note,created_at),
-      order_inventory_consumptions(consumed_at,stock_id)
+      order_inventory_consumptions(consumed_at,stock_id),
+      order_production_requirements(material_id,consumed_required_quantity)
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 
@@ -359,6 +382,31 @@
       } finally {
         paymentButton.disabled = false;
         paymentButton.textContent = "Alterar";
+      }
+      return;
+    }
+
+    const adjustButton = event.target.closest("#adjustOrderMaterials");
+    if (adjustButton) {
+      const responsibleName = await requestProductionResponsible(adjustButton.dataset.orderCode, true);
+      if (!responsibleName) return;
+      adjustButton.disabled = true;
+      adjustButton.textContent = "Processando...";
+      try {
+        const { data, error } = await client.rpc("adjust_order_production_inventory", {
+          p_order_id: adjustButton.dataset.orderId,
+          p_responsible_name: responsibleName
+        });
+        if (error) throw error;
+        toast(data?.adjusted ? "Baixa adicional realizada com sucesso." : "Nenhum material adicional precisa ser baixado.");
+        document.getElementById("orderDetailsModal").classList.remove("open");
+        await loadReferences();
+        await load();
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Não foi possível dar baixa no ajuste.");
+        adjustButton.disabled = false;
+        adjustButton.textContent = "Dar baixa do ajuste";
       }
       return;
     }
