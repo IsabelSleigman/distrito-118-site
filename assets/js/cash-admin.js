@@ -21,15 +21,15 @@
     tbody.innerHTML = `<tr><td colspan="6" class="loading-row">Carregando movimentações...</td></tr>`;
     pendingBody.innerHTML = `<tr><td colspan="6" class="loading-row">Carregando pendências...</td></tr>`;
 
-    const [movementResult, orderResult, materialResult, stockResult, balanceResult] = await Promise.all([
+    const [movementResult, orderResult, itemResult, stockResult, balanceResult] = await Promise.all([
       client.from("cash_movements").select("id,movement_type,description,amount,source,payment_type,created_at,orders(code)").order("created_at", { ascending: false }),
       client.from("orders").select("id,code,customer_name,cnpj_name,payment_type,net_amount,final_amount,vault_deposited_at,vault_deposited_by,cash_posted_at,status,created_at").eq("status", "delivered").is("deleted_at", null).not("cash_posted_at", "is", null).order("created_at", { ascending: false }),
-      client.from("materials").select("id,name").eq("is_active", true),
+      client.from("inventory_catalog").select("item_id,name").eq("is_active", true),
       client.from("inventory_stocks").select("id,scope,name").in("scope", ["geral", "gerencia"]),
-      client.from("inventory_balances").select("stock_id,material_id,quantity")
+      client.from("inventory_all_balances").select("stock_id,item_id,quantity")
     ]);
 
-    const error = movementResult.error || orderResult.error || materialResult.error || stockResult.error || balanceResult.error;
+    const error = movementResult.error || orderResult.error || itemResult.error || stockResult.error || balanceResult.error;
     if (error) {
       console.error(error);
       tbody.innerHTML = `<tr><td colspan="6" class="empty">Não foi possível carregar o caixa.</td></tr>`;
@@ -39,10 +39,10 @@
 
     const movements = movementResult.data || [];
     const orders = orderResult.data || [];
-    const materials = materialResult.data || [];
+    const items = itemResult.data || [];
     const stocks = stockResult.data || [];
     const balances = balanceResult.data || [];
-    const materialTypeById = new Map(materials.map(material => [material.id, classifyMoneyMaterial(material.name)]));
+    const itemTypeById = new Map(items.map(item => [item.item_id, classifyMoneyMaterial(item.name)]));
     const stockById = new Map(stocks.map(stock => [stock.id, stock]));
     const totals = {
       geral: { clean: 0, dirty: 0 },
@@ -50,7 +50,7 @@
     };
 
     balances.forEach(balance => {
-      const type = materialTypeById.get(balance.material_id);
+      const type = itemTypeById.get(balance.item_id);
       const scope = stockById.get(balance.stock_id)?.scope;
       if (type && totals[scope]) totals[scope][type] += Number(balance.quantity || 0);
     });

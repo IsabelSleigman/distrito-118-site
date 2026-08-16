@@ -11,7 +11,6 @@
   let materials = [];
   let materialComponents = [];
   let inventoryBalances = [];
-  let inventoryProductBalances = [];
   let currentEditingOrder = null;
 
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -33,16 +32,18 @@
     inventoryBalances.forEach(row => {
       const scope = row.inventory_stocks?.scope;
       if (!balancesByScope[scope]) return;
-      balancesByScope[scope].set(row.material_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
+      balancesByScope[scope].set(row.item_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
     });
     const stocks = {
-      geral: new Map(materials.map(item => [item.id, balancesByScope.geral.get(item.id) || 0])),
-      gerencia: new Map(materials.map(item => [item.id, balancesByScope.gerencia.get(item.id) || 0]))
+      geral: new Map(materials.map(item => [item.id, balancesByScope.geral.get(item.inventory_item_id) || 0])),
+      gerencia: new Map(materials.map(item => [item.id, balancesByScope.gerencia.get(item.inventory_item_id) || 0]))
     };
     const productStocks = { geral: new Map(), gerencia: new Map() };
-    inventoryProductBalances.forEach(row => {
-      const scope = row.inventory_stocks?.scope;
-      if (productStocks[scope]) productStocks[scope].set(row.product_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
+    (order.order_items || []).forEach(item => {
+      const inventoryId = item.products?.inventory_item_id;
+      if (!inventoryId) return;
+      productStocks.geral.set(item.product_id, balancesByScope.geral.get(inventoryId) || 0);
+      productStocks.gerencia.set(item.product_id, balancesByScope.gerencia.get(inventoryId) || 0);
     });
     const direct = new Map(), general = new Map(), management = new Map(), produce = new Map(), missing = new Map();
     const add = (map, material, amount, keySuffix = "", displayName = null) => {
@@ -111,12 +112,14 @@
   }
 
   function buildProductionAdjustment(order, plan) {
-    const consumed = new Map((order.order_product_fulfillments || []).map(row => [row.product_id, Number(row.covered_quantity || 0)]));
+    const consumed = new Map((order.order_item_fulfillments || []).map(row => [row.inventory_item_id, Number(row.covered_quantity || 0)]));
     const current = new Map();
     const names = new Map();
     (order.order_items || []).forEach(item => {
-      current.set(item.product_id, (current.get(item.product_id) || 0) + Number(item.quantity || 0));
-      names.set(item.product_id, item.product_name || "Produto");
+      const inventoryId = item.products?.inventory_item_id;
+      if (!inventoryId) return;
+      current.set(inventoryId, (current.get(inventoryId) || 0) + Number(item.quantity || 0));
+      names.set(inventoryId, item.product_name || "Produto");
     });
     const ids = new Set([...consumed.keys(), ...current.keys()]);
     const additions = [], excess = [];
@@ -220,13 +223,12 @@
   }
 
   async function loadReferences() {
-    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult, productBalancesResult] = await Promise.all([
-      client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
-      client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,output_quantity,is_active").eq("is_active", true).order("name"),
+    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
+      client.from("products").select(`id,name,inventory_item_id,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
+      client.from("materials").select("id,name,inventory_item_id,unit,stock_quantity,reserved_quantity,output_quantity,is_active").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
       client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
-      client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity"),
-      client.from("inventory_product_balances").select("stock_id,product_id,quantity,reserved_quantity")
+      client.from("inventory_all_balances").select("stock_id,item_id,quantity,reserved_quantity")
     ]);
     if (productsResult.error) throw productsResult.error;
     orderProducts = productsResult.data || [];
@@ -234,7 +236,6 @@
     materialComponents = componentsResult.error ? [] : (componentsResult.data || []);
     const scopesByStockId = new Map((stocksResult.data || []).map(stock => [stock.id, stock.scope]));
     inventoryBalances = (stocksResult.error || balancesResult.error) ? [] : (balancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
-    inventoryProductBalances = (stocksResult.error || productBalancesResult.error) ? [] : (productBalancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
 
   }
 
@@ -349,11 +350,11 @@
     const { data, error } = await client.from("orders").select(`
       id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,cash_posted_at,vault_deposited_at,vault_deposited_by,status,created_at,deleted_at,production_helpers,
       received_by_profile:profiles!orders_received_by_fkey(name,email),
-      order_items(quantity,product_name,unit_price,subtotal,product_id,products(output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit)))),
+      order_items(quantity,product_name,unit_price,subtotal,product_id,products(inventory_item_id,output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit,inventory_item_id)))),
       order_status_history(status,note,created_at),
       order_inventory_consumptions(consumed_at,stock_id),
       order_production_requirements(material_id,consumed_required_quantity),
-      order_product_fulfillments(product_id,covered_quantity)
+      order_item_fulfillments(inventory_item_id,covered_quantity)
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 

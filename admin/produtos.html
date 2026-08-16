@@ -59,6 +59,7 @@
           <div class="form-grid">
             <div class="field"><label>Nome *</label><input id="productName" required maxlength="100"></div>
             <div class="field"><label>Categoria *</label><input id="productCategory" list="categoryOptions" required maxlength="80" placeholder="Ex.: Proteção"><datalist id="categoryOptions"></datalist></div>
+            <div class="field full"><label>Item físico no baú</label><select id="productInventoryItem"><option value="">Criar/vincular automaticamente pelo nome</option></select><small class="field-help">Use um item existente para preservar seu saldo. Produto e receita continuarão separados.</small></div>
             <div class="field full"><label>Descrição</label><textarea id="productDescription" maxlength="500"></textarea></div>
             <div class="field full"><label>URL da imagem</label><input id="productImageUrl" type="text" placeholder="https://..."></div>
             <div class="field"><label>Quantidade produzida por fabricação *</label><input id="productOutputQuantity" type="number" min="0.01" step="0.01" value="1" required></div>

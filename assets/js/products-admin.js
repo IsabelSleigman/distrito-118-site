@@ -1,7 +1,7 @@
 (() => {
   const client = window.distritoSupabase;
   const TIERS = ["cpf", "cnpj", "alianca", "parceria"];
-  let products = [], categories = [], materials = [];
+  let products = [], categories = [], materials = [], inventoryItems = [];
 
   const $ = id => document.getElementById(id);
   const nnull = value => value === "" ? null : Number(value);
@@ -33,6 +33,8 @@
     clearError();$("productForm").reset();$("recipeRows").innerHTML="";
     $("productId").value=product?.id||"";$("productModalTitle").textContent=product?"Editar produto":"Novo produto";
     $("productName").value=product?.name||"";$("productCategory").value=product?.product_categories?.name||"";
+    $("productInventoryItem").innerHTML=`<option value="">Criar/vincular automaticamente pelo nome</option>${inventoryItems.map(item=>`<option value="${item.item_id}">${esc(item.name)}${item.is_product?" · produto":""}</option>`).join("")}`;
+    $("productInventoryItem").value=product?.inventory_item_id||"";
     $("productDescription").value=product?.description||"";$("productImageUrl").value=product?.image_url||"";$("productOutputQuantity").value=product?.output_quantity??1;
     $("productIsActive").checked=product?.is_active??true;$("productIsPublic").checked=product?.is_public??true;$("productAllowsOrder").checked=product?.allows_order??true;
     TIERS.forEach(t=>fillTier(product,t));
@@ -43,17 +45,18 @@
   function closeModal(){$("productModal").classList.remove("open");clearError()}
 
   async function loadReferences(){
-    const [{data:c,error:ce},{data:m,error:me}]=await Promise.all([
+    const [{data:c,error:ce},{data:m,error:me},{data:i,error:ie}]=await Promise.all([
       client.from("product_categories").select("id,name").order("name"),
-      client.from("materials").select("id,name,is_active").eq("is_active",true).order("name")
+      client.from("materials").select("id,name,is_active").eq("is_active",true).order("name"),
+      client.from("inventory_catalog").select("item_id,name,is_product").eq("is_active",true).order("name")
     ]);
-    if(ce)throw ce;if(me)throw me;categories=c||[];materials=m||[];
+    if(ce)throw ce;if(me)throw me;if(ie)throw ie;categories=c||[];materials=m||[];inventoryItems=i||[];
     $("categoryOptions").innerHTML=categories.map(x=>`<option value="${esc(x.name)}"></option>`).join("");
   }
   async function loadProducts(){
     const tbody=$("productsTable");tbody.innerHTML=`<tr><td colspan="8" class="loading-row">Carregando produtos...</td></tr>`;
     const {data,error}=await client.from("products").select(`
-      id,name,description,image_url,output_quantity,is_active,is_public,allows_order,category_id,
+      id,name,description,image_url,output_quantity,inventory_item_id,is_active,is_public,allows_order,category_id,
       product_categories(name),
       product_prices(id,customer_type,unit_price,wholesale_minimum,wholesale_price),
       product_materials(id,material_id,quantity_required,materials(name))
@@ -88,7 +91,7 @@
     event.preventDefault();clearError();setSaving(true);
     try{
       const id=$("productId").value||null;TIERS.forEach(t=>validateWholesale($(`${t}WholesaleMinimum`).value,$(`${t}WholesalePrice`).value,window.DistrictPricing.label(t)));
-      const payload={category_id:await categoryId($("productCategory").value),name:$("productName").value.trim(),description:$("productDescription").value.trim()||null,image_url:$("productImageUrl").value.trim()||null,output_quantity:Number($("productOutputQuantity").value||1),is_active:$("productIsActive").checked,is_public:$("productIsPublic").checked,allows_order:$("productAllowsOrder").checked};
+      const payload={category_id:await categoryId($("productCategory").value),name:$("productName").value.trim(),inventory_item_id:$("productInventoryItem").value||null,description:$("productDescription").value.trim()||null,image_url:$("productImageUrl").value.trim()||null,output_quantity:Number($("productOutputQuantity").value||1),is_active:$("productIsActive").checked,is_public:$("productIsPublic").checked,allows_order:$("productAllowsOrder").checked};
       if(!id)payload.created_by=window.currentDistrictUser?.id||null;
       const {data,error}=await (id?client.from("products").update(payload).eq("id",id):client.from("products").insert(payload)).select("id").single();if(error)throw error;
       const prices=TIERS.map(t=>({product_id:data.id,customer_type:t,unit_price:Number($(`${t}UnitPrice`).value||0),wholesale_minimum:nnull($(`${t}WholesaleMinimum`).value),wholesale_price:nnull($(`${t}WholesalePrice`).value)}));
