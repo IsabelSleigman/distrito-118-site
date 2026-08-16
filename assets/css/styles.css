@@ -760,7 +760,7 @@ body {
 .internal-order-section-title.products-title { margin-top:28px; }
 .internal-order-section-title.products-title .btn { margin-left:auto; }
 .internal-order-items { display:grid; gap:10px; }
-.internal-order-item { display:grid; grid-template-columns:minmax(0,1fr) 118px 46px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+.internal-order-item { display:grid; grid-template-columns:minmax(0,1fr) 110px 180px 46px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
 .internal-order-item .field { margin:0; }
 .internal-order-item .remove-internal-item { height:48px; }
 .internal-order-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:16px 28px; border-top:1px solid var(--line); background:#111113; }
@@ -856,7 +856,7 @@ body {
 .calculator-stock-toggle { display:flex; align-items:center; gap:9px; color:var(--text); font-size:.78rem; font-weight:800; cursor:pointer; }
 .calculator-stock-toggle input { width:18px; height:18px; accent-color:#e5e5e5; }
 .calculator-items { display:grid; gap:10px; margin-bottom:14px; }
-.calculator-item { display:grid; grid-template-columns:minmax(0,1fr) 110px 44px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+.calculator-item { display:grid; grid-template-columns:minmax(0,1fr) 100px 170px 44px; gap:10px; align-items:end; padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
 .calculator-item .field { margin:0; }
 .calculator-item .calculator-remove { height:48px; }
 .calculator-results { min-height:420px; }
@@ -865,7 +865,7 @@ body {
 .calculator-empty-list { color:var(--muted); font-size:.78rem; line-height:1.5; margin:12px 0 0; }
 .empty-state { min-height:260px; display:grid; place-items:center; text-align:center; color:var(--muted); border:1px dashed rgba(255,255,255,.14); border-radius:16px; }
 @media (max-width:1000px){.calculator-layout{grid-template-columns:1fr}.calculator-builder{position:static}}
-@media (max-width:650px){.calculator-item{grid-template-columns:1fr 90px 42px}.calculator-plan-grid{grid-template-columns:1fr}.calculator-mode{align-items:flex-start;flex-direction:column}}
+@media (max-width:650px){.calculator-item{grid-template-columns:1fr 90px 42px}.calculator-item .calculator-root-mode{grid-column:1/3}.calculator-plan-grid{grid-template-columns:1fr}.calculator-mode{align-items:flex-start;flex-direction:column}}
 
 
 /* V7.2.4 — loading global e calculadora híbrida */
@@ -986,6 +986,7 @@ body {
 .goal-members-panel table input{width:150px}.goal-members-panel table select{min-width:155px}
 .manual-progress-breakdown{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;color:var(--muted);font-size:.72rem}.manual-progress-breakdown b{color:var(--text)}
 .member-multiplier-control{display:flex;align-items:center;gap:8px;margin-top:9px;color:var(--muted);font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.member-multiplier-control select{min-width:120px!important;min-height:34px!important;padding:5px 8px!important;font-size:.72rem}.member-multiplier-control select:has(option[value="2"]:checked){border-color:rgba(245,158,11,.5)!important;color:#fbbf24!important}
+@media(max-width:800px){.internal-order-item{grid-template-columns:1fr 90px 42px}.internal-order-item .acquisition-field{grid-column:1/3}.internal-order-item .remove-internal-item{grid-column:3;grid-row:1/3}}
 .goal-members-panel th{white-space:nowrap}.goal-members-panel td{vertical-align:middle}.goal-members-panel .table-actions{flex-wrap:wrap;min-width:190px}
 @media(max-width:900px){#goalModal{padding:14px;align-items:flex-end}.goal-participant-list{grid-template-columns:repeat(2,minmax(0,1fr))}#goalModal .goal-modal-card{width:100%;height:min(94vh,900px);border-radius:22px 22px 0 0}#goalModal .modal-form{padding:28px 24px 22px}#goalModal .form-actions{margin-left:-24px;margin-right:-24px;margin-bottom:-22px;padding-left:24px;padding-right:24px}}
 @media(max-width:620px){.goal-participant-list{grid-template-columns:1fr;max-height:210px}#goalModal .form-grid{grid-template-columns:1fr}#goalModal .field.full{grid-column:auto}#goalModal .goal-requirement-row{grid-template-columns:1fr 100px 42px}#manualProgressModal{padding:0;align-items:flex-end}#manualProgressModal .goal-modal-card{width:100%;max-height:94vh;border-radius:22px 22px 0 0}#manualProgressModal .modal-form{padding:26px 20px}.goal-members-panel table input{width:120px}}

@@ -14,10 +14,10 @@
     return `<optgroup label="PRODUTOS">${productOptions}</optgroup><optgroup label="MATERIAIS PRODUZÍVEIS">${materialOptions}</optgroup>`;
   }
 
-  function addSelection(selectionKey = products[0] ? `product:${products[0].id}` : catalog.find(item => item.is_craftable) ? `item:${catalog.find(item => item.is_craftable).item_id}` : "", quantity = 1) {
+  function addSelection(selectionKey = products[0] ? `product:${products[0].id}` : catalog.find(item => item.is_craftable) ? `item:${catalog.find(item => item.is_craftable).item_id}` : "", quantity = 1, mode = "auto") {
     if (!selectionKey) return;
     const row = document.createElement("div"); row.className = "calculator-item";
-    row.innerHTML = `<div class="field"><label>Item</label><select class="calculator-selection">${groupedOptions(selectionKey)}</select></div><div class="field"><label>Quantidade</label><input class="calculator-quantity" type="number" min="1" value="${quantity}"></div><button class="icon-btn danger calculator-remove" type="button">×</button>`;
+    row.innerHTML = `<div class="field"><label>Item</label><select class="calculator-selection">${groupedOptions(selectionKey)}</select></div><div class="field"><label>Quantidade</label><input class="calculator-quantity" type="number" min="1" value="${quantity}"></div><div class="field"><label>Como obter</label><select class="calculator-root-mode"><option value="auto" ${mode==="auto"?"selected":""}>Automático</option><option value="stock" ${mode==="stock"?"selected":""}>Pegar do baú</option><option value="produce" ${mode==="produce"?"selected":""}>Produzir</option></select></div><button class="icon-btn danger calculator-remove" type="button">×</button>`;
     row.querySelectorAll("select,input").forEach(element => element.addEventListener("input", calculate));
     row.querySelector("button").onclick = () => { row.remove(); calculate(); };
     document.getElementById("calculatorItems").appendChild(row); calculate();
@@ -36,16 +36,17 @@
     document.querySelectorAll(".calculator-item").forEach(row => {
       const key = row.querySelector("select").value;
       const quantity = Math.max(1,Number(row.querySelector("input").value || 1));
-      merged.set(key,(merged.get(key)||0)+quantity);
+      const mode = row.querySelector(".calculator-root-mode")?.value || "auto";
+      const mergedKey=`${key}:${mode}`;merged.set(mergedKey,(merged.get(mergedKey)||0)+quantity);
     });
-    return [...merged].map(([key,quantity]) => {
-      const [type,id] = key.split(":");
+    return [...merged].map(([mergedKey,quantity]) => {
+      const [type,id,mode] = mergedKey.split(":");const key=`${type}:${id}`;
       if (type === "product") {
         const product = products.find(row => row.id === id);
-        return product ? { key, id:product.inventory_item_id, quantity, displayName:product.name } : null;
+        return product ? { key, id:product.inventory_item_id, quantity, displayName:product.name, mode } : null;
       }
       const item = itemById(id);
-      return item ? { key, id, quantity, displayName:item.name } : null;
+      return item ? { key, id, quantity, displayName:item.name, mode } : null;
     }).filter(Boolean);
   }
 
@@ -71,12 +72,12 @@
       return remaining;
     };
 
-    const process = (id,quantity,{root=false,stack=[],displayName=null}={}) => {
+    const process = (id,quantity,{root=false,stack=[],displayName=null,requestedMode=null}={}) => {
       const item=itemById(id); if(!item||quantity<=0)return;
       if(stack.includes(id)){add(missing,item,quantity);return;}
       const recipe=recipeFor(id);
       let remaining=quantity;
-      const mode=root ? "auto" : (strategies.get(id)||"auto");
+      const mode=root ? (requestedMode||"auto") : (strategies.get(id)||"auto");
       if(mode!=="produce") remaining=take(item,remaining,displayName);
       if(remaining<=0)return;
       if(!recipe.length || mode==="stock"){add(missing,item,remaining,"",displayName); if(!recipe.length)add(basics,item,remaining,"",displayName); return;}
@@ -86,7 +87,7 @@
       add(produce,item,produced,"",displayName); if(extra>0)add(surplus,item,extra,"",displayName);
       recipe.forEach(component => process(component.component_item_id,batches*Number(component.quantity_required||0),{stack:[...stack,id]}));
     };
-    requested.forEach(row => process(row.id,row.quantity,{root:true,displayName:row.displayName}));
+    requested.forEach(row => process(row.id,row.quantity,{root:true,displayName:row.displayName,requestedMode:row.mode}));
     return {selected:sorted(selected),separate:sorted(separate),produce:sorted(produce),missing:sorted(missing),surplus:sorted(surplus),dependencies:sorted(dependencies),basics:sorted(basics)};
   }
 

@@ -84,7 +84,7 @@
     for (const item of order.order_items || []) {
       let remainingProduct = Number(item.quantity || 0);
       const productDescriptor = { id: item.product_id, name: item.product_name || "Produto", unit: "unidade" };
-      for (const scope of ["geral", "gerencia"]) {
+      for (const scope of item.acquisition_mode === "produce" ? [] : ["geral", "gerencia"]) {
         const available = productStocks[scope].get(item.product_id) || 0;
         const used = Math.min(available, remainingProduct);
         if (used > 0) {
@@ -94,6 +94,7 @@
         }
       }
       if (remainingProduct <= 0) continue;
+      if (item.acquisition_mode === "stock") { add(missing, productDescriptor, remainingProduct, ":product", `${productDescriptor.name} (pronto)`); continue; }
       for (const recipe of item.products?.product_materials || []) {
         const material = materialById(recipe.material_id) || recipe.materials;
         if (!material) continue;
@@ -241,11 +242,11 @@
 
   const internalProductOptions = () => orderProducts.map(product => `<option value="${product.id}">${esc(product.name)}</option>`).join("");
 
-  function addInternalItem(productId = orderProducts[0]?.id, quantity = 1) {
+  function addInternalItem(productId = orderProducts[0]?.id, quantity = 1, acquisitionMode = "auto") {
     if (!productId) return;
     const row = document.createElement("div");
     row.className = "order-item internal-order-item";
-    row.innerHTML = `<div class="field"><label>Produto</label><select class="internal-order-product">${internalProductOptions()}</select></div><div class="field quantity-field"><label>Quantidade</label><input class="internal-order-qty" type="number" min="1" value="${Math.max(1, Number(quantity || 1))}"></div><button type="button" class="icon-btn danger remove-internal-item" aria-label="Remover produto">×</button>`;
+    row.innerHTML = `<div class="field"><label>Produto</label><select class="internal-order-product">${internalProductOptions()}</select></div><div class="field quantity-field"><label>Quantidade</label><input class="internal-order-qty" type="number" min="1" value="${Math.max(1, Number(quantity || 1))}"></div><div class="field acquisition-field"><label>Como obter</label><select class="internal-order-acquisition"><option value="auto" ${acquisitionMode==="auto"?"selected":""}>Automático</option><option value="stock" ${acquisitionMode==="stock"?"selected":""}>Pegar do baú</option><option value="produce" ${acquisitionMode==="produce"?"selected":""}>Produzir</option></select></div><button type="button" class="icon-btn danger remove-internal-item" aria-label="Remover produto">×</button>`;
     row.querySelector("select").value = productId;
     row.querySelectorAll("select,input").forEach(element => element.addEventListener("input", updateInternalTotals));
     row.querySelector(".remove-internal-item").addEventListener("click", () => { row.remove(); updateInternalTotals(); });
@@ -300,7 +301,7 @@
       const isCnpj = order.customer_type === "cnpj";
       document.getElementById("internalCnpjField").style.display = isCnpj ? "flex" : "none";
       document.getElementById("internalCnpjName").required = isCnpj;
-      (order.order_items || []).forEach(item => addInternalItem(item.product_id, item.quantity));
+      (order.order_items || []).forEach(item => addInternalItem(item.product_id, item.quantity, item.acquisition_mode || "auto"));
     } else {
       document.getElementById("internalCnpjField").style.display = "none";
       document.getElementById("internalCnpjName").required = false;
@@ -328,7 +329,7 @@
         input_payment_type: document.getElementById("internalPaymentType").value,
         input_pricing_tier: document.getElementById("internalPricingTier").value,
         input_production_helpers: document.getElementById("internalProductionHelpers").value.trim() || null,
-        input_items: rows.map(row => ({ product_id: row.querySelector(".internal-order-product").value, quantity: Math.max(1, Number(row.querySelector(".internal-order-qty").value || 1)) }))
+        input_items: rows.map(row => ({ product_id: row.querySelector(".internal-order-product").value, quantity: Math.max(1, Number(row.querySelector(".internal-order-qty").value || 1)), acquisition_mode: row.querySelector(".internal-order-acquisition").value }))
       };
       const editing = Boolean(currentEditingOrder);
       const rpcName = editing ? "update_internal_order" : "create_internal_order";
@@ -350,7 +351,7 @@
     const { data, error } = await client.from("orders").select(`
       id,code,customer_type,customer_name,cnpj_name,passport,phone,notes,pricing_tier,total_amount,payment_type,clean_amount,dirty_amount,final_amount,commission_rate,commission_amount,net_amount,cash_posted_at,vault_deposited_at,vault_deposited_by,status,created_at,deleted_at,production_helpers,
       received_by_profile:profiles!orders_received_by_fkey(name,email),
-      order_items(quantity,product_name,unit_price,subtotal,product_id,products(inventory_item_id,output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit,inventory_item_id)))),
+      order_items(quantity,product_name,unit_price,subtotal,product_id,acquisition_mode,products(inventory_item_id,output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit,inventory_item_id)))),
       order_status_history(status,note,created_at),
       order_inventory_consumptions(consumed_at,stock_id),
       order_production_requirements(material_id,consumed_required_quantity),
