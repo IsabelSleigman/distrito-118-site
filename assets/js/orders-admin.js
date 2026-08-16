@@ -11,6 +11,7 @@
   let materials = [];
   let materialComponents = [];
   let inventoryBalances = [];
+  let inventoryProductBalances = [];
   let currentEditingOrder = null;
 
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -38,6 +39,11 @@
       geral: new Map(materials.map(item => [item.id, balancesByScope.geral.get(item.id) || 0])),
       gerencia: new Map(materials.map(item => [item.id, balancesByScope.gerencia.get(item.id) || 0]))
     };
+    const productStocks = { geral: new Map(), gerencia: new Map() };
+    inventoryProductBalances.forEach(row => {
+      const scope = row.inventory_stocks?.scope;
+      if (productStocks[scope]) productStocks[scope].set(row.product_id, Math.max(0, Number(row.quantity || 0) - Number(row.reserved_quantity || 0)));
+    });
     const direct = new Map(), general = new Map(), management = new Map(), produce = new Map(), missing = new Map();
     const add = (map, material, amount, keySuffix = "", displayName = null) => {
       if (!material || amount <= 0) return;
@@ -75,11 +81,23 @@
       recipe.forEach(component => consume(component.component_material_id, batches * Number(component.quantity_required || 0), [...stack, materialId]));
     };
     for (const item of order.order_items || []) {
+      let remainingProduct = Number(item.quantity || 0);
+      const productDescriptor = { id: item.product_id, name: item.product_name || "Produto", unit: "unidade" };
+      for (const scope of ["geral", "gerencia"]) {
+        const available = productStocks[scope].get(item.product_id) || 0;
+        const used = Math.min(available, remainingProduct);
+        if (used > 0) {
+          add(scope === "geral" ? general : management, productDescriptor, used, ":product", `${productDescriptor.name} (pronto)`);
+          productStocks[scope].set(item.product_id, available - used);
+          remainingProduct -= used;
+        }
+      }
+      if (remainingProduct <= 0) continue;
       for (const recipe of item.products?.product_materials || []) {
         const material = materialById(recipe.material_id) || recipe.materials;
         if (!material) continue;
         const productOutputQuantity = Math.max(0.000001, Number(item.products?.output_quantity || 1));
-        const batches = Math.ceil((Number(item.quantity || 0) / productOutputQuantity) - 1e-9);
+        const batches = Math.ceil((remainingProduct / productOutputQuantity) - 1e-9);
         const quantity = batches * Number(recipe.quantity_required || 0);
         add(direct, material, quantity); consume(material.id, quantity);
       }
@@ -93,16 +111,20 @@
   }
 
   function buildProductionAdjustment(order, plan) {
-    const consumed = new Map((order.order_production_requirements || []).map(row => [row.material_id, Number(row.consumed_required_quantity || 0)]));
-    const current = new Map((plan.direct || []).map(item => [item.id, Number(item.quantity || 0)]));
+    const consumed = new Map((order.order_product_fulfillments || []).map(row => [row.product_id, Number(row.covered_quantity || 0)]));
+    const current = new Map();
+    const names = new Map();
+    (order.order_items || []).forEach(item => {
+      current.set(item.product_id, (current.get(item.product_id) || 0) + Number(item.quantity || 0));
+      names.set(item.product_id, item.product_name || "Produto");
+    });
     const ids = new Set([...consumed.keys(), ...current.keys()]);
     const additions = [], excess = [];
     ids.forEach(id => {
-      const material = materialById(id);
       const required = current.get(id) || 0;
       const already = consumed.get(id) || 0;
       const delta = required - already;
-      const row = { id, name: material?.name || "Material", unit: material?.unit || "unidade", quantity: Math.abs(delta), required, already };
+      const row = { id, name: names.get(id) || orderProducts.find(product => product.id === id)?.name || "Produto", unit: "unidade", quantity: Math.abs(delta), required, already };
       if (delta > 0.000001) additions.push(row);
       if (delta < -0.000001) excess.push(row);
     });
@@ -198,12 +220,13 @@
   }
 
   async function loadReferences() {
-    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult] = await Promise.all([
+    const [productsResult, materialsResult, componentsResult, stocksResult, balancesResult, productBalancesResult] = await Promise.all([
       client.from("products").select(`id,name,is_active,allows_order,product_prices(customer_type,unit_price,wholesale_minimum,wholesale_price)`).eq("is_active", true).eq("allows_order", true).order("name"),
       client.from("materials").select("id,name,unit,stock_quantity,reserved_quantity,output_quantity,is_active").eq("is_active", true).order("name"),
       client.from("material_components").select("material_id,component_material_id,quantity_required"),
       client.from("inventory_stocks").select("id,scope").in("scope", ["geral", "gerencia"]),
-      client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity")
+      client.from("inventory_balances").select("stock_id,material_id,quantity,reserved_quantity"),
+      client.from("inventory_product_balances").select("stock_id,product_id,quantity,reserved_quantity")
     ]);
     if (productsResult.error) throw productsResult.error;
     orderProducts = productsResult.data || [];
@@ -211,6 +234,7 @@
     materialComponents = componentsResult.error ? [] : (componentsResult.data || []);
     const scopesByStockId = new Map((stocksResult.data || []).map(stock => [stock.id, stock.scope]));
     inventoryBalances = (stocksResult.error || balancesResult.error) ? [] : (balancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
+    inventoryProductBalances = (stocksResult.error || productBalancesResult.error) ? [] : (productBalancesResult.data || []).map(row => ({ ...row, inventory_stocks: { scope: scopesByStockId.get(row.stock_id) } }));
 
   }
 
@@ -328,7 +352,8 @@
       order_items(quantity,product_name,unit_price,subtotal,product_id,products(output_quantity,product_materials(material_id,quantity_required,materials(id,name,unit)))),
       order_status_history(status,note,created_at),
       order_inventory_consumptions(consumed_at,stock_id),
-      order_production_requirements(material_id,consumed_required_quantity)
+      order_production_requirements(material_id,consumed_required_quantity),
+      order_product_fulfillments(product_id,covered_quantity)
     `).is("deleted_at", null).order("created_at", { ascending: false });
     if (error) { console.error(error); tbody.innerHTML = `<tr><td colspan="8" class="empty">Não foi possível carregar as encomendas.</td></tr>`; return; }
 
