@@ -52,8 +52,9 @@ async function setupDistrictLogin() {
     }
 
     loginMessage("Acesso autorizado. Abrindo o painel...", "success");
-    const { data: profile } = await window.distritoSupabase.from("profiles").select("must_change_password").maybeSingle();
-    if (profile?.must_change_password) { window.location.replace("/alterar-senha"); return; }
+    const { data: profile } = await window.distritoSupabase.from("profiles").select("must_change_password").eq("id",(await window.distritoSupabase.auth.getUser()).data.user.id).maybeSingle();
+    const { data: member } = await window.distritoSupabase.from("members").select("access_status").eq("profile_id",(await window.distritoSupabase.auth.getUser()).data.user.id).maybeSingle();
+    if (profile?.must_change_password || member?.access_status === "temporary_password") { window.location.replace("/alterar-senha"); return; }
     const redirect = (params.get("redirect") || "").replace(/\.html$/i, "");
     const target = redirect && redirect !== "index" ? `/admin/${encodeURIComponent(redirect)}` : "/admin";
     window.location.replace(target);

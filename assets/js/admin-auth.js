@@ -10,7 +10,7 @@ async function loadCurrentDistrictUser(user) {
 
   const { data: member, error: memberError } = await client
     .from("members")
-    .select("name,email,access_level,status")
+    .select("name,email,access_level,status,access_status")
     .eq("profile_id", user.id)
     .maybeSingle();
   if (memberError) console.error("Erro ao carregar cadastro do membro:", memberError);
@@ -37,7 +37,7 @@ async function loadCurrentDistrictUser(user) {
     name: member?.name || profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Usuário",
     email: member?.email || profile?.email || user.email || "",
     accessLevel: member?.access_level || null,
-    mustChangePassword: profile?.must_change_password === true,
+    mustChangePassword: profile?.must_change_password === true || member?.access_status === "temporary_password",
     roles,
   };
 }
@@ -79,19 +79,27 @@ function applyDistrictPermissions(user) {
   const isManager = isDistrictManager(user);
   const isMember = isDistrictMember(user);
   const allowedForManager = new Set(["admin", "index", "encomendas", "metas", "calculadora", "caixa"]);
+  const allowedForMember = new Set(["admin", "index", "calculadora"]);
   const section = currentAdminSection();
 
   document.querySelectorAll('[data-admin-only="true"]').forEach((element) => {
     element.hidden = !isAdmin;
   });
 
+  if (isMember && !isAdmin && !isManager) {
+    document.querySelectorAll(".sidebar-nav a").forEach(link => {
+      const href=link.getAttribute("href")||"";
+      link.hidden=!["/admin","/admin/calculadora","/"].includes(href);
+    });
+  }
+
   if (!isAdmin && !isManager && !isMember) {
     window.distritoSupabase.auth.signOut().finally(() => window.location.replace("/login?error=access_denied"));
     return false;
   }
 
-  if (isMember && !isAdmin && !isManager && section !== "calculadora") {
-    window.location.replace("/admin/calculadora"); return false;
+  if (isMember && !isAdmin && !isManager && !allowedForMember.has(section)) {
+    window.location.replace("/admin"); return false;
   }
 
   if (!isAdmin && !allowedForManager.has(section)) {
