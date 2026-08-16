@@ -2,7 +2,7 @@ async function loadCurrentDistrictUser(user) {
   const client = window.distritoSupabase;
   const { data: profile, error: profileError } = await client
     .from("profiles")
-    .select("name, email, is_active")
+    .select("name, email, is_active, must_change_password")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -37,6 +37,7 @@ async function loadCurrentDistrictUser(user) {
     name: member?.name || profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Usuário",
     email: member?.email || profile?.email || user.email || "",
     accessLevel: member?.access_level || null,
+    mustChangePassword: profile?.must_change_password === true,
     roles,
   };
 }
@@ -143,6 +144,7 @@ async function protectDistrictAdmin() {
 
   const currentUser = await loadCurrentDistrictUser(session.user);
   if (!currentUser) return;
+  if (currentUser.mustChangePassword) { window.location.replace("/alterar-senha"); return; }
 
   window.currentDistrictUser = currentUser;
   if (!applyDistrictPermissions(currentUser)) return;

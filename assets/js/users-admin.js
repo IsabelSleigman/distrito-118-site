@@ -8,3 +8,39 @@
   function close(){document.getElementById("memberModal").classList.remove("open")}
   document.addEventListener("district-auth-ready",async()=>{document.getElementById("newMember").onclick=()=>open();document.getElementById("closeMemberModal").onclick=close;document.getElementById("cancelMemberModal").onclick=close;document.getElementById("memberFilter").onchange=load;document.getElementById("memberForm").onsubmit=async e=>{e.preventDefault();const{error}=await client.rpc("save_member",{p_id:document.getElementById("memberId").value||null,p_name:document.getElementById("memberName").value,p_member_code:document.getElementById("memberCode").value||null,p_email:document.getElementById("memberEmail").value||null,p_access_level:document.getElementById("memberAccess").value,p_discord_user_id:document.getElementById("memberDiscord").value||null,p_discord_channel_id:document.getElementById("memberChannel").value||null,p_status:document.getElementById("memberStatus").value});if(error)return toast(error.message);close();toast("Usuário salvo.");await load()};document.getElementById("membersTable").onclick=async e=>{const id=e.target.dataset.id,m=members.find(x=>x.id===id);if(e.target.classList.contains("edit"))open(m);if(e.target.classList.contains("dismiss")){const reason=prompt(`Motivo da exoneração de ${m.name}:`);if(reason===null)return;const{error}=await client.rpc("dismiss_member",{p_member_id:id,p_reason:reason||null});if(error)toast(error.message);else{toast("Usuário exonerado e histórico preservado.");await load()}}if(e.target.classList.contains("reactivate")){const{error}=await client.rpc("save_member",{p_id:id,p_name:m.name,p_member_code:m.member_code,p_email:m.email,p_access_level:m.access_level,p_discord_user_id:m.discord_user_id,p_discord_channel_id:m.discord_channel_id,p_status:"active"});if(error)toast(error.message);else{toast("Usuário reintegrado.");await load()}}};await load();window.lucide?.createIcons()},{once:true});
 })();
+
+// Gestão segura de acesso: adiciona ações sem armazenar a senha temporária.
+document.addEventListener("district-auth-ready", () => {
+  const table = document.getElementById("membersTable");
+  if (!table) return;
+  const enhance = async () => {
+    const { data } = await window.distritoSupabase.from("members").select("id,name,email,username,profile_id,access_status");
+    const map = new Map((data || []).map(x => [x.id, x]));
+    table.querySelectorAll("tr").forEach(row => {
+      const base = row.querySelector("button[data-id]");
+      if (!base || row.querySelector(".member-access-action")) return;
+      const member = map.get(base.dataset.id), actions = base.parentElement;
+      if (!member || !actions) return;
+      const button = document.createElement("button");
+      button.type="button"; button.dataset.id=member.id; button.className="icon-btn member-access-action";
+      button.textContent=member.profile_id ? "Redefinir senha" : "Gerar acesso";
+      button.dataset.action=member.profile_id ? "reset" : "create";
+      actions.prepend(button);
+    });
+  };
+  new MutationObserver(enhance).observe(table,{childList:true,subtree:true}); enhance();
+  table.addEventListener("click",async event=>{
+    const button=event.target.closest(".member-access-action"); if(!button)return;
+    const action=button.dataset.action,username=action==="create"?prompt("Nome de usuário (ex.: isabel.505):",""):null;
+    if(action==="create"&&username===null)return;
+    if(action==="reset"&&!confirm("A senha atual deixará de funcionar. Gerar uma nova senha temporária?"))return;
+    button.disabled=true;button.textContent="Gerando...";
+    const {data,error}=await window.distritoSupabase.functions.invoke("manage-member-access",{body:{member_id:button.dataset.id,action,username}});
+    button.disabled=false;
+    if(error||data?.error){alert(data?.error||error?.message||"Não foi possível gerar o acesso.");button.textContent=action==="create"?"Gerar acesso":"Redefinir senha";return}
+    const credential=`Login: ${data.login}\nSenha temporária: ${data.temporary_password}`;
+    await navigator.clipboard?.writeText(credential).catch(()=>{});
+    alert(`${credential}\n\nA credencial foi copiada. Ela não será mostrada novamente.`);
+    location.reload();
+  });
+},{once:true});

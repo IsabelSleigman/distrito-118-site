@@ -32,20 +32,30 @@ async function setupDistrictLogin() {
     button.textContent = "Entrando...";
     document.getElementById("loginMessage").hidden = true;
 
-    const email = document.getElementById("loginEmail").value.trim();
+    const identifier = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
+    let email = identifier;
+    if (!identifier.includes("@")) {
+      const { data, error: resolveError } = await window.distritoSupabase.rpc("resolve_member_login", { p_username: identifier });
+      if (resolveError || !data) {
+        loginMessage("E-mail, usuário ou senha incorretos."); button.disabled=false; button.textContent="Entrar no painel"; return;
+      }
+      email = data;
+    }
 
     const { error } = await window.distritoSupabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       console.error(error);
-      loginMessage("E-mail ou senha incorretos.");
+      loginMessage("E-mail, usuário ou senha incorretos.");
       button.disabled = false;
       button.textContent = "Entrar no painel";
       return;
     }
 
     loginMessage("Acesso autorizado. Abrindo o painel...", "success");
+    const { data: profile } = await window.distritoSupabase.from("profiles").select("must_change_password").maybeSingle();
+    if (profile?.must_change_password) { window.location.replace("/alterar-senha"); return; }
     const redirect = (params.get("redirect") || "").replace(/\.html$/i, "");
     const target = redirect && redirect !== "index" ? `/admin/${encodeURIComponent(redirect)}` : "/admin";
     window.location.replace(target);
