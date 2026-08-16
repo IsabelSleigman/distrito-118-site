@@ -119,6 +119,15 @@
 
   async function load() {
     window.DistrictLoader?.show("Carregando itens, receitas e estoques...");
+    if(window.currentDistrictUser?.accessLevel==="membro"){
+      const{data,error}=await client.rpc("get_member_craft_data");if(error)throw error;
+      catalog=data?.catalog||[];products=data?.products||[];recipes=data?.recipes||[];stocks=[];balances=[];
+      const controls=document.querySelector(".calculator-stock-controls");if(controls)controls.hidden=true;
+      const check=document.getElementById("considerStock");check.checked=false;check.disabled=true;
+      document.getElementById("calculatorResultHint").textContent="Receita completa, sem consultar os estoques da organização.";
+      document.querySelectorAll("#calculatorSeparate").forEach(x=>x.closest("section").hidden=true);
+      document.getElementById("calculatorItems").innerHTML="";addSelection();window.DistrictLoader?.hide();return;
+    }
     const [c,p,r,s,b]=await Promise.all([
       client.from("inventory_catalog").select("item_id,name,unit,is_active,is_product,is_material,is_craftable").eq("is_active",true).order("name"),
       client.from("products").select("id,name,inventory_item_id").eq("is_active",true).eq("allows_order",true).not("inventory_item_id","is",null).order("name"),

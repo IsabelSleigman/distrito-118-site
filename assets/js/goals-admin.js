@@ -253,6 +253,13 @@
   }
 
   document.addEventListener("district-auth-ready", async () => {
+    if (window.currentDistrictUser?.accessLevel === "membro") {
+      const { data, error } = await client.rpc("get_my_member_dashboard");
+      const main=document.querySelector(".admin-main"),g=data?.goal;
+      if(error){main.innerHTML=`<section class="panel"><h2>Minha Meta</h2><p>${esc(error.message)}</p></section>`;return}
+      main.innerHTML=`<div class="admin-top"><div><span class="eyebrow">Acompanhamento pessoal</span><h1>Minha Meta</h1><p class="page-subtitle">Somente você e a gestão podem consultar estes dados.</p></div></div><section class="panel member-goal-card">${g?`<div class="section-head"><div><span class="eyebrow">Semana atual</span><h2>${esc(g.title)}</h2><p>${formatDate(g.start_date)} → ${formatDate(g.end_date)}</p></div><span class="badge neutral">${esc(g.member_status||"Em andamento")}</span></div><div class="member-requirements">${(g.requirements||[]).map(r=>`<div><span>${esc(r.item_name)}</span><strong>${Number(r.credited)}/${Number(r.required)}</strong><small>${Number(r.remaining)>0?`Faltam ${Number(r.remaining)}`:Number(r.extra)>0?`+${Number(r.extra)} para a próxima`:"Concluído ✓"}</small></div>`).join("")||"<p>Nenhum item obrigatório.</p>"}</div>${g.reward_name?`<p class="member-reward">Premiação: <strong>${esc(g.reward_name)}</strong></p>`:""}<h3>Últimas entregas</h3><div class="member-submissions">${(g.submissions||[]).map(s=>`<div><span>${new Date(s.submitted_at).toLocaleString("pt-BR")}</span><strong>${esc(s.status)}</strong></div>`).join("")||"<p>Nenhuma entrega registrada.</p>"}</div>`:`<h2>Nenhuma meta ativa</h2><p>Quando uma nova semana for criada, ela aparecerá aqui.</p>`}</section>`;
+      return;
+    }
     bindEvents();
     const { data } = await client.from("inventory_catalog").select("item_id,name").order("name");
     inventoryItems = data || [];

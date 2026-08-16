@@ -79,7 +79,7 @@ function applyDistrictPermissions(user) {
   const isManager = isDistrictManager(user);
   const isMember = isDistrictMember(user);
   const allowedForManager = new Set(["admin", "index", "encomendas", "metas", "calculadora", "caixa"]);
-  const allowedForMember = new Set(["admin", "index", "calculadora"]);
+  const allowedForMember = new Set(["admin", "index", "metas", "calculadora"]);
   const section = currentAdminSection();
 
   document.querySelectorAll('[data-admin-only="true"]').forEach((element) => {
@@ -89,7 +89,7 @@ function applyDistrictPermissions(user) {
   if (isMember && !isAdmin && !isManager) {
     document.querySelectorAll(".sidebar-nav a").forEach(link => {
       const href=link.getAttribute("href")||"";
-      link.hidden=!["/admin","/admin/calculadora","/"].includes(href);
+      link.hidden=!["/admin","/admin/metas","/admin/calculadora","/"].includes(href);
     });
   }
 

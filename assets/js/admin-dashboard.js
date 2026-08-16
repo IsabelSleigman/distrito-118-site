@@ -7,6 +7,11 @@ const esc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const normalize=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
 const moneyType=name=>{const n=normalize(name);if(!n.includes("dinheiro"))return null;if(n.includes("sujo"))return"dirty";return"clean";};
 async function load(){
+ if(window.currentDistrictUser?.accessLevel==="membro"){
+  const{data,error}=await client.rpc("get_my_member_dashboard");if(error){toast(error.message);return}
+  const g=data?.goal,main=document.querySelector(".admin-main");
+  main.innerHTML=`<div class="admin-top"><div><span class="eyebrow">Meu painel</span><h1>Olá, ${esc(data.member?.name||"Membro")}</h1><p class="page-subtitle">Acompanhe sua meta semanal e acesse a calculadora.</p></div></div><section class="panel member-goal-card"><span class="eyebrow">Meta atual</span>${g?`<h2>${esc(g.title)}</h2><p>${esc(g.start_date)} até ${esc(g.end_date)} · <strong>${esc(g.member_status||"Em andamento")}</strong></p><div class="member-requirements">${(g.requirements||[]).map(r=>`<div><span>${esc(r.item_name)}</span><strong>${r.credited}/${r.required}</strong><small>${Number(r.remaining)>0?`Faltam ${r.remaining}`:Number(r.extra)>0?`Extra ${r.extra}`:"Concluído ✓"}</small></div>`).join("")||"<p>Nenhum item obrigatório.</p>"}</div>${g.reward_name?`<p>Prêmio: <strong>${esc(g.reward_name)}</strong></p>`:""}`:`<h2>Nenhuma meta ativa</h2><p>Quando uma nova semana for criada, ela aparecerá aqui.</p>`}</section>`;return;
+ }
  const [ordersResult,financeResult,materialsResult,stockResult,balancesResult]=await Promise.all([
   client.from("orders").select("code,customer_name,cnpj_name,total_amount,status,created_at").is("deleted_at",null).order("created_at",{ascending:false}).limit(50),
   client.from("orders").select("net_amount,vault_deposited_at").eq("status","delivered").is("deleted_at",null).not("cash_posted_at","is",null),
