@@ -13,6 +13,13 @@
 document.addEventListener("district-auth-ready", () => {
   const table = document.getElementById("membersTable");
   if (!table) return;
+  const showCredential = (login,password) => {
+    const wrapper=document.createElement("div"); wrapper.className="modal-backdrop open credential-backdrop";
+    wrapper.innerHTML=`<div class="modal-card credential-card"><button class="modal-close" type="button">×</button><div class="credential-body"><span class="eyebrow">Acesso gerado</span><h2>Credencial temporária</h2><p>Envie estes dados ao membro. A senha não ficará salva nesta tela.</p><label>Login</label><div class="credential-value"><code>${login}</code></div><label>Senha temporária</label><div class="credential-value"><code>${password}</code></div><div class="form-actions"><button class="btn ghost credential-close" type="button">Fechar</button><button class="btn primary credential-copy" type="button">Copiar credenciais</button></div></div></div>`;
+    document.body.appendChild(wrapper); const close=()=>{wrapper.remove();location.reload()};
+    wrapper.querySelector(".modal-close").onclick=close;wrapper.querySelector(".credential-close").onclick=close;
+    wrapper.querySelector(".credential-copy").onclick=async e=>{await navigator.clipboard.writeText(`Login: ${login}\nSenha temporária: ${password}`);e.currentTarget.textContent="Copiado ✓"};
+  };
   const enhance = async () => {
     const { data } = await window.distritoSupabase.from("members").select("id,name,email,username,profile_id,access_status");
     const map = new Map((data || []).map(x => [x.id, x]));
@@ -31,16 +38,12 @@ document.addEventListener("district-auth-ready", () => {
   new MutationObserver(enhance).observe(table,{childList:true,subtree:true}); enhance();
   table.addEventListener("click",async event=>{
     const button=event.target.closest(".member-access-action"); if(!button)return;
-    const action=button.dataset.action,username=action==="create"?prompt("Nome de usuário (ex.: isabel.505):",""):null;
-    if(action==="create"&&username===null)return;
+    const action=button.dataset.action;
     if(action==="reset"&&!confirm("A senha atual deixará de funcionar. Gerar uma nova senha temporária?"))return;
     button.disabled=true;button.textContent="Gerando...";
-    const {data,error}=await window.distritoSupabase.functions.invoke("manage-member-access",{body:{member_id:button.dataset.id,action,username}});
+    const {data,error}=await window.distritoSupabase.functions.invoke("manage-member-access",{body:{member_id:button.dataset.id,action}});
     button.disabled=false;
     if(error||data?.error){alert(data?.error||error?.message||"Não foi possível gerar o acesso.");button.textContent=action==="create"?"Gerar acesso":"Redefinir senha";return}
-    const credential=`Login: ${data.login}\nSenha temporária: ${data.temporary_password}`;
-    await navigator.clipboard?.writeText(credential).catch(()=>{});
-    alert(`${credential}\n\nA credencial foi copiada. Ela não será mostrada novamente.`);
-    location.reload();
+    showCredential(data.login,data.temporary_password);
   });
 },{once:true});

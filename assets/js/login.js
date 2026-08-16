@@ -1,10 +1,8 @@
 async function redirectAuthenticatedUser() {
   const { data: { session } } = await window.distritoSupabase.auth.getSession();
   if (session) {
-    const params = new URLSearchParams(window.location.search);
-    const redirect = (params.get("redirect") || "").replace(/\.html$/i, "");
-    const target = redirect && redirect !== "index" ? `/admin/${encodeURIComponent(redirect)}` : "/admin";
-    window.location.replace(target);
+    // Abrir /login significa trocar de conta. Evita ciclos de sessão sem permissão.
+    await window.distritoSupabase.auth.signOut();
   }
 }
 

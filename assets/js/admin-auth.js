@@ -47,8 +47,10 @@ function isDistrictAdmin(user) {
 }
 
 function isDistrictManager(user) {
-  return user.roles.includes("gerente") || user.roles.includes("management");
+  return user.roles.includes("gerente") || user.roles.includes("gerencia") || user.roles.includes("management") || user.accessLevel === "gerencia";
 }
+
+function isDistrictMember(user) { return user.roles.includes("membro") || user.accessLevel === "membro"; }
 
 function currentAdminSection() {
   const page = window.location.pathname.split("/").filter(Boolean).pop() || "admin";
@@ -75,6 +77,7 @@ function applyDistrictPermissions(user) {
   ensureUsersNavigation();
   const isAdmin = isDistrictAdmin(user);
   const isManager = isDistrictManager(user);
+  const isMember = isDistrictMember(user);
   const allowedForManager = new Set(["admin", "index", "encomendas", "metas", "calculadora", "caixa"]);
   const section = currentAdminSection();
 
@@ -82,9 +85,13 @@ function applyDistrictPermissions(user) {
     element.hidden = !isAdmin;
   });
 
-  if (!isAdmin && !isManager) {
-    window.location.replace("/?error=access_denied");
+  if (!isAdmin && !isManager && !isMember) {
+    window.distritoSupabase.auth.signOut().finally(() => window.location.replace("/login?error=access_denied"));
     return false;
+  }
+
+  if (isMember && !isAdmin && !isManager && section !== "calculadora") {
+    window.location.replace("/admin/calculadora"); return false;
   }
 
   if (!isAdmin && !allowedForManager.has(section)) {

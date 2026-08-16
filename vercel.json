@@ -1,1 +1,1 @@
-{"cleanUrls":true,"trailingSlash":false}
+{"cleanUrls":true,"trailingSlash":false,"rewrites":[{"source":"/alterar-senha","destination":"/alterar-senha.html"}]}
